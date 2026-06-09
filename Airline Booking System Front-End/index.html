@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flight606 – Luxury Redefined</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700;1,900&family=Lato:wght@300;400;700;900&family=Lora:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+  <!-- ══════════ NAVBAR ══════════ -->
+  <nav class="navbar navbar-expand-lg fixed-top" id="mainNav">
+    <div class="container-fluid nav-inner">
+      <a class="navbar-brand nav-logo" href="#" onclick="showPage('home'); return false;">
+        <span class="logo-mark">
+          <i class="bi bi-airplane-fill"></i>
+        </span>
+        Flight<span class="gold">606</span>
+      </a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+        <span class="toggler-icon"></span>
+        <span class="toggler-icon"></span>
+        <span class="toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarContent">
+        <ul class="navbar-nav mx-auto gap-lg-2">
+          <li class="nav-item">
+            <a class="nav-link active" id="nl-home" href="#" onclick="goNav(this,'home'); return false;">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" id="nl-book" href="#" onclick="goNav(this,'search-flights'); return false;">Flights</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" id="nl-tour" href="#" onclick="goNav(this,'home','tours'); return false;">Destinations</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" id="nl-about" href="#" onclick="goNav(this,'home','about'); return false;">Experience</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" id="nl-contact" href="#" onclick="goNav(this,'contact'); return false;">Contact</a>
+          </li>
+        </ul>
+
+        <div class="nav-actions d-flex align-items-center gap-2" id="nav-logged-out">
+          <a class="btn-ghost" href="#" onclick="showPage('login'); return false;">Login</a>
+          <a class="btn-gold" href="#" onclick="showPage('signup'); return false;">Sign Up</a>
+        </div>
+
+        <div class="nav-actions d-flex align-items-center gap-2" id="nav-logged-in" style="display:none!important">
+          <div class="profile-dropdown" id="profileDropdown">
+            <button class="profile-trigger" onclick="toggleProfileMenu()">
+              <i class="bi bi-person-circle"></i>
+              <span class="profile-name-label">My Account</span>
+              <i class="bi bi-chevron-down small"></i>
+            </button>
+            <div class="profile-menu" id="profileMenu">
+              <a href="#" onclick="showPage('profile'); closeProfileMenu(); return false;"><i class="bi bi-person"></i> Personal Details</a>
+              <a href="#" onclick="showPage('profile'); closeProfileMenu(); return false;"><i class="bi bi-credit-card"></i> Payment Details</a>
+              <a href="#" onclick="showPage('profile'); closeProfileMenu(); return false;"><i class="bi bi-wallet2"></i> Wallet</a>
+              <a href="#" onclick="showPage('profile'); closeProfileMenu(); return false;"><i class="bi bi-clock-history"></i> Payment History</a>
+              <div class="pm-sep"></div>
+              <a href="#" class="logout-link" onclick="doLogout(); return false;"><i class="bi bi-box-arrow-right"></i> Log out</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+
+  <!-- ══════════ HOME PAGE ══════════ -->
+  <div id="page-home" class="page active">
+
+    <!-- Hero -->
+    <section class="hero-section">
+      <div class="hero-overlay"></div>
+      <div class="hero-slider-bg" id="heroBg"></div>
+
+      <div class="container hero-content">
+        <p class="hero-eyebrow">Flight 606 &nbsp;·&nbsp; Luxury Redefined</p>
+        <h1 class="hero-title">Paradise <em>Awaits</em><br>Your Arrival</h1>
+        <p class="hero-sub">Discover untouched destinations in absolute comfort</p>
+
+        <div class="hero-slider-nav">
+          <button class="slider-arrow" onclick="prevSlide()"><i class="bi bi-arrow-left"></i></button>
+          <div class="slider-dots" id="sliderDots">
+            <button class="dot active" onclick="goSlide(0)"></button>
+            <button class="dot" onclick="goSlide(1)"></button>
+            <button class="dot" onclick="goSlide(2)"></button>
+          </div>
+          <button class="slider-arrow" onclick="nextSlide()"><i class="bi bi-arrow-right"></i></button>
+        </div>
+
+        <!-- Booking Widget -->
+        <div class="booking-widget">
+          <div class="widget-header">
+            <div class="widget-tabs">
+              <button class="w-tab active" id="wtb-buy" onclick="wTab('buy')">Buy Tickets</button>
+              <button class="w-tab" id="wtb-status" onclick="wTab('status')">Check Flight Status</button>
+            </div>
+            <a href="#" class="btn-gold" onclick="goNav(null,'search-flights'); return false;">Book Now</a>
+          </div>
+
+          <div id="wp-buy">
+            <div class="trip-radios">
+              <label class="r-lbl"><input type="radio" name="trip" value="one" checked><span>One way</span></label>
+              <label class="r-lbl"><input type="radio" name="trip" value="round"><span>Round trip</span></label>
+              <label class="r-lbl"><input type="radio" name="trip" value="multi"><span>Multi-city</span></label>
+            </div>
+            <div class="widget-fields">
+              <div class="w-field">
+                <label class="w-flabel"><i class="bi bi-airplane-fill gold-icon"></i> From</label>
+                <select class="w-select" id="hw-from" onchange="syncSearchFrom()">
+                  <option value="">Select Departure…</option>
+                  <option value="MNL">Manila (MNL)</option>
+                  <option value="CEB">Cebu (CEB)</option>
+                  <option value="DVO">Davao (DVO)</option>
+                  <option value="SIN">Singapore (SIN)</option>
+                  <option value="TYO">Tokyo (TYO)</option>
+                  <option value="DXB">Dubai (DXB)</option>
+                </select>
+              </div>
+              <div class="w-field">
+                <label class="w-flabel"><i class="bi bi-geo-alt-fill gold-icon"></i> To</label>
+                <select class="w-select" id="hw-to" onchange="syncSearchTo()">
+                  <option value="">Select Destination…</option>
+                  <option value="CDG">Paris (CDG)</option>
+                  <option value="NRT">Tokyo (NRT)</option>
+                  <option value="MLE">Maldives (MLE)</option>
+                  <option value="GVA">Geneva (GVA)</option>
+                  <option value="JFK">New York (JFK)</option>
+                  <option value="DXB">Dubai (DXB)</option>
+                  <option value="MNL">Manila (MNL)</option>
+                  <option value="CEB">Cebu (CEB)</option>
+                </select>
+              </div>
+              <div class="w-field">
+                <label class="w-flabel"><i class="bi bi-calendar3 gold-icon"></i> Departure Date</label>
+                <input type="date" class="w-input" id="hw-date" onchange="syncSearchDate()">
+              </div>
+              <div class="w-field">
+                <label class="w-flabel"><i class="bi bi-people-fill gold-icon"></i> Passengers</label>
+                <select class="w-select" id="hw-pax" onchange="syncSearchPax()">
+                  <option>1 Adult</option>
+                  <option selected>2 Adults</option>
+                  <option>3 Adults</option>
+                  <option>2 Adults, 1 Child</option>
+                  <option>2 Adults, 2 Children</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div id="wp-status" style="display:none">
+            <div class="widget-fields" style="grid-template-columns: 1fr 1fr;">
+              <div class="w-field">
+                <label class="w-flabel"><i class="bi bi-airplane gold-icon"></i> Flight Number</label>
+                <input type="text" class="w-input" placeholder="e.g. F606 001">
+              </div>
+              <div class="w-field">
+                <label class="w-flabel"><i class="bi bi-calendar3 gold-icon"></i> Date</label>
+                <input type="date" class="w-input">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tour Plan -->
+    <section id="tours" class="section-pad bg-dark-base">
+      <div class="container">
+        <p class="section-eyebrow">Curated Routes</p>
+        <div class="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-5">
+          <h2 class="section-title">Tour <em>Plan</em></h2>
+          <a href="#" class="view-all-link" onclick="goNav(null,'search-flights'); return false;">View All Routes &nbsp;→</a>
+        </div>
+        <div class="dest-grid row g-3">
+          <div class="col-6 col-lg-3">
+            <div class="dest-card" onclick="goNav(null,'search-flights')">
+              <img src="https://images.unsplash.com/photo-1431274172761-fca41d930114?w=600&q=70" alt="Paris">
+              <div class="dest-overlay">
+                <span class="dest-tag">The City of Lights</span>
+                <span class="dest-name">Paris</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="dest-card" onclick="goNav(null,'search-flights')">
+              <img src="https://images.unsplash.com/photo-1618238832760-7e4129ef4a43?w=600&q=70" alt="Maldives">
+              <div class="dest-overlay">
+                <span class="dest-tag">Ocean Sanctuary</span>
+                <span class="dest-name">Maldives</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="dest-card" onclick="goNav(null,'search-flights')">
+              <img src="https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=600&q=70" alt="Tokyo">
+              <div class="dest-overlay">
+                <span class="dest-tag">Neon Meets Tradition</span>
+                <span class="dest-name">Tokyo</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="dest-card" onclick="goNav(null,'search-flights')">
+              <img src="https://images.unsplash.com/photo-1598258710957-db8614c2881e?w=600&q=70" alt="Manila">
+              <div class="dest-overlay">
+                <span class="dest-tag">It's More Fun Here</span>
+                <span class="dest-name">Manila</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- About -->
+    <section id="about" class="section-pad about-section">
+      <div class="container">
+        <div class="row align-items-center g-5">
+          <div class="col-lg-6">
+            <p class="section-eyebrow">Our Story</p>
+            <h2 class="section-title">Time is your most<br>precious <em>commodity.</em></h2>
+            <p class="body-text mt-4">We believe the journey should be as remarkable as the destination. Flight606 was founded on a singular principle: to return the romance, privacy, and absolute comfort to transcontinental travel.</p>
+            <p class="body-text mt-3">From private terminal departures to bespoke culinary programs crafted by Michelin-starred chefs — every detail is engineered for those who demand nothing less than perfection.</p>
+            <a href="#" class="btn-outline-gold mt-4 d-inline-block">Discover the Experience</a>
+          </div>
+          <div class="col-lg-6">
+            <div class="about-visual"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="section-pad testi-section">
+      <div class="container">
+        <p class="section-eyebrow text-center">Distinguished Guests</p>
+        <h2 class="section-title text-center mb-5">Whispers of <em>Excellence</em></h2>
+        <div class="row g-4">
+          <div class="col-md-4">
+            <div class="testi-card">
+              <div class="testi-stars">★★★★★</div>
+              <p class="testi-quote">"The only airline where I genuinely look forward to a 12-hour flight. The private suite and dining service rival the best hotels in the world."</p>
+              <p class="testi-who">— Eleanor R., London</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="testi-card">
+              <div class="testi-stars">★★★★★</div>
+              <p class="testi-quote">"Flight606 has completely redefined business travel for me. Quiet, understated, and impeccably serviced. A masterclass in hospitality at altitude."</p>
+              <p class="testi-who">— Marcus T., New York</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="testi-card">
+              <div class="testi-stars">★★★★★</div>
+              <p class="testi-quote">"From the chauffeur service to the arrivals lounge, it is a seamless cocoon of luxury. I simply refuse to fly any other way now."</p>
+              <p class="testi-who">— Sophia C., Geneva</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <div class="container">
+        <div class="row g-4 mb-5">
+          <div class="col-6 col-md-3 col-lg">
+            <p class="footer-heading">Other Offerings</p>
+            <ul class="footer-links"><li><a href="#">PHplus</a></li><li><a href="#">Temptations</a></li><li><a href="#">Zuitt Academy ↗</a></li><li><a href="#">More</a></li></ul>
+          </div>
+          <div class="col-6 col-md-3 col-lg">
+            <p class="footer-heading">About Us</p>
+            <ul class="footer-links"><li><a href="#">Philippines Aviation Group</a></li><li><a href="#">Corporate Governance</a></li><li><a href="#">Leadership</a></li><li><a href="#">Awards</a></li><li><a href="#">Join Us</a></li></ul>
+          </div>
+          <div class="col-6 col-md-3 col-lg">
+            <p class="footer-heading">Corporate Travel</p>
+            <ul class="footer-links"><li><a href="#">PHcorporate</a></li><li><a href="#">PHcorporate SME</a></li><li><a href="#">PHcorporate MARINE</a></li><li><a href="#">PHcorporate EVENTS</a></li></ul>
+          </div>
+          <div class="col-6 col-md-3 col-lg">
+            <p class="footer-heading">AskMH</p>
+            <ul class="footer-links"><li><a href="#">FAQ ↗</a></li><li><a href="#">Contact Details</a></li><li><a href="#">Feedback</a></li></ul>
+          </div>
+          <div class="col-lg-3">
+            <p class="footer-heading">Subscribe to our offers</p>
+            <div class="sub-wrap">
+              <input type="email" class="sub-input" placeholder="your@email.com">
+              <button class="sub-btn" onclick="alert('Thank you for subscribing!')">Subscribe</button>
+            </div>
+            <p class="footer-connect-label">Connect With Us</p>
+            <div class="soc-row">
+              <a href="#" class="soc-i"><i class="bi bi-twitter-x"></i></a>
+              <a href="#" class="soc-i"><i class="bi bi-facebook"></i></a>
+              <a href="#" class="soc-i"><i class="bi bi-youtube"></i></a>
+              <a href="#" class="soc-i"><i class="bi bi-instagram"></i></a>
+              <a href="#" class="soc-i"><i class="bi bi-tiktok"></i></a>
+            </div>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <div class="footer-legal">
+            <a href="#">Legal</a><a href="#">Privacy</a><a href="#">Accessibility</a>
+            <a href="#">Terms & Conditions</a><a href="#">Sales and Service Tax</a>
+          </div>
+          <span class="footer-copy">© Batch 606</span>
+        </div>
+      </div>
+    </footer>
+
+  </div><!-- /page-home -->
+
+
+  <!-- ══════════ LOGIN ══════════ -->
+  <div id="page-login" class="page">
+    <div class="auth-bg">
+      <div class="container auth-wrap">
+        <div class="row align-items-center min-vh-100 py-5">
+          <div class="col-lg-6 auth-left d-none d-lg-flex flex-column justify-content-center pe-5">
+            <p class="auth-eyebrow">Flight 606 · Luxury Redefined</p>
+            <h1 class="auth-headline">Paradise <em>Awaits</em><br>Your Arrival</h1>
+            <p class="auth-sub">Your Exclusive Gateway to <span class="gold">First-class</span> Journey</p>
+            <blockquote class="auth-quote">
+              <p>"Flight606 is the only Airline where the journey becomes your destination"</p>
+              <footer>— Manny Paksiu</footer>
+            </blockquote>
+          </div>
+          <div class="col-lg-6">
+            <div class="auth-card">
+              <p class="a-tag">Welcome back</p>
+              <h2 class="a-title">Login to your <span class="gold">account</span></h2>
+              <div id="login-err" class="alert-msg alert-error d-none">Sorry, we don't recognize that email or password.</div>
+              <div class="mb-3">
+                <label class="f-label">E-Mail</label>
+                <input type="email" id="l-email" class="f-input" placeholder="example@email.com">
+                <p class="err-msg d-none" id="l-email-err">Sorry, we don't recognize this email.</p>
+              </div>
+              <div class="mb-3">
+                <label class="f-label">Password</label>
+                <div class="input-wrap">
+                  <input type="password" id="l-pass" class="f-input" placeholder="••••••••••">
+                  <span class="input-eye" onclick="togglePass('l-pass')"><i class="bi bi-eye"></i></span>
+                </div>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mb-4">
+                <label class="r-lbl"><input type="checkbox"> <span>Remember me</span></label>
+                <a href="#" class="gold-link">Forgot password?</a>
+              </div>
+              <button class="btn-gold-full" onclick="doLogin()">Login Now</button>
+              <button class="oauth-btn"><img src="https://www.google.com/favicon.ico" width="14" alt="G"> Continue with Google</button>
+              <button class="oauth-btn"><i class="bi bi-apple"></i> Continue with Apple</button>
+              <p class="switch-link">Don't have an account? <a href="#" onclick="showPage('signup'); return false;" class="gold-link">Sign Up</a></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════ SIGN UP ══════════ -->
+  <div id="page-signup" class="page">
+    <div class="auth-bg">
+      <div class="container auth-wrap">
+        <div class="row align-items-center min-vh-100 py-5">
+          <div class="col-lg-6 auth-left d-none d-lg-flex flex-column justify-content-center pe-5">
+            <p class="auth-eyebrow">Flight 606 · Luxury Redefined</p>
+            <h1 class="auth-headline">Experience the<br><em>Art of Travel</em></h1>
+            <p class="auth-sub">Crafted for the <span class="gold">Modern Traveler</span></p>
+            <blockquote class="auth-quote">
+              <p>"Flight606 is the only Airline where the journey becomes your destination"</p>
+              <footer>— Manny Paksiu</footer>
+            </blockquote>
+          </div>
+          <div class="col-lg-6">
+            <div class="auth-card">
+              <p class="a-tag">Welcome to Flight606</p>
+              <h2 class="a-title">Create <span class="gold">account</span></h2>
+              <div id="su-ok" class="alert-msg alert-success d-none">Account created! Redirecting to login…</div>
+              <div class="row g-3">
+                <div class="col-6">
+                  <label class="f-label">First Name</label>
+                  <input type="text" id="su-fn" class="f-input" placeholder="First name">
+                  <p class="err-msg d-none" id="su-fn-e">First name is required.</p>
+                </div>
+                <div class="col-6">
+                  <label class="f-label">Last Name</label>
+                  <input type="text" id="su-ln" class="f-input" placeholder="Last name">
+                  <p class="err-msg d-none" id="su-ln-e">Last name is required.</p>
+                </div>
+                <div class="col-6">
+                  <label class="f-label">E-Mail</label>
+                  <input type="email" id="su-em" class="f-input" placeholder="your.email@mail.com">
+                  <p class="err-msg d-none" id="su-em-e">Valid email required.</p>
+                </div>
+                <div class="col-6">
+                  <label class="f-label">Date of Birth</label>
+                  <input type="date" id="su-dob" class="f-input">
+                </div>
+                <div class="col-6">
+                  <label class="f-label">Password</label>
+                  <div class="input-wrap">
+                    <input type="password" id="su-pw" class="f-input" placeholder="Password">
+                    <span class="input-eye" onclick="togglePass('su-pw')"><i class="bi bi-eye"></i></span>
+                  </div>
+                  <p class="err-msg d-none" id="su-pw-e">Min. 8 characters required.</p>
+                </div>
+                <div class="col-6">
+                  <label class="f-label">Confirm Password</label>
+                  <div class="input-wrap">
+                    <input type="password" id="su-cp" class="f-input" placeholder="••••••••••">
+                    <span class="input-eye" onclick="togglePass('su-cp')"><i class="bi bi-eye"></i></span>
+                  </div>
+                  <p class="err-msg d-none" id="su-cp-e">Passwords do not match.</p>
+                </div>
+              </div>
+              <label class="r-lbl mt-3"><input type="checkbox" id="su-terms"> <span>I agree to all the <a href="#" class="gold-link">Terms</a> and <a href="#" class="gold-link">Privacy Policy</a></span></label>
+              <p class="err-msg d-none mt-1" id="su-terms-e">You must agree to the terms.</p>
+              <button class="btn-gold-full mt-3" onclick="doSignup()">Create Account</button>
+              <button class="oauth-btn"><img src="https://www.google.com/favicon.ico" width="14" alt="G"> Continue with Google</button>
+              <button class="oauth-btn"><i class="bi bi-apple"></i> Continue with Apple</button>
+              <p class="switch-link">Already have an account? <a href="#" onclick="showPage('login'); return false;" class="gold-link">Log In</a></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════ SEARCH FLIGHTS ══════════ -->
+  <div id="page-search-flights" class="page">
+    <div class="inner-page">
+      <div class="inner-hero">
+        <div class="container text-center">
+          <p class="hero-eyebrow">Flight 606 · Luxury Redefined</p>
+          <h1 class="hero-title">Paradise <em>Awaits</em> Your Arrival</h1>
+          <p class="hero-sub">Discover untouched destinations in absolute comfort</p>
+        </div>
+      </div>
+
+      <div class="page-body">
+        <div class="container">
+          <!-- Search bar -->
+          <div class="sf-search-bar">
+            <div class="d-flex gap-4 mb-3 flex-wrap">
+              <label class="r-lbl"><input type="radio" name="sf-trip" value="one" checked><span>One way</span></label>
+              <label class="r-lbl"><input type="radio" name="sf-trip" value="round"><span>Round trip</span></label>
+              <label class="r-lbl"><input type="radio" name="sf-trip" value="multi"><span>Multi-city</span></label>
+            </div>
+            <div class="sf-bar-row">
+              <div>
+                <div class="sf-label">From</div>
+                <select class="sf-select" id="sf-from">
+                  <option value="MNL">Manila (MNL)</option>
+                  <option value="CEB">Cebu (CEB)</option>
+                  <option value="DVO">Davao (DVO)</option>
+                  <option value="SIN">Singapore (SIN)</option>
+                  <option value="TYO">Tokyo (TYO)</option>
+                  <option value="DXB">Dubai (DXB)</option>
+                </select>
+              </div>
+              <div>
+                <div class="sf-label">To</div>
+                <select class="sf-select" id="sf-to">
+                  <option value="CDG">Paris (CDG)</option>
+                  <option value="NRT">Tokyo (NRT)</option>
+                  <option value="MLE">Maldives (MLE)</option>
+                  <option value="GVA">Geneva (GVA)</option>
+                  <option value="JFK">New York (JFK)</option>
+                  <option value="DXB">Dubai (DXB)</option>
+                  <option value="CEB">Cebu (CEB)</option>
+                </select>
+              </div>
+              <div>
+                <div class="sf-label">Departure Date</div>
+                <input type="date" class="sf-input" id="sf-date">
+              </div>
+              <div>
+                <div class="sf-label">Passengers</div>
+                <select class="sf-select" id="sf-pax">
+                  <option>1 Adult</option>
+                  <option selected>2 Adults</option>
+                  <option>3 Adults</option>
+                  <option>2 Adults, 1 Child</option>
+                </select>
+              </div>
+              <div>
+                <button class="sf-search-btn" onclick="updateFlightBanner()">Search</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Outbound results -->
+          <div class="results-banner gold-banner">
+            ✈ Select departure flight from <strong id="sf-from-label">Manila (MNL)</strong> to <strong id="sf-to-label">Cebu (CEB)</strong>
+          </div>
+
+          <div class="date-scroll-row">
+            <span class="date-arrow">‹</span>
+            <div class="date-chips">
+              <span class="date-chip">Mon 13 May</span><span class="date-chip">Tue 14 May</span><span class="date-chip">Wed 15 May</span>
+              <span class="date-chip">Thu 16 May</span><span class="date-chip active">Fri 17 May</span><span class="date-chip">Sat 18 May</span>
+              <span class="date-chip">Sun 19 May</span><span class="date-chip">Mon 20 May</span>
+            </div>
+            <span class="date-arrow">›</span>
+          </div>
+
+          <div class="flight-card selected" onclick="selectFlight(this)">
+            <div class="fc-endpoint">
+              <div class="fc-time">08:10</div>
+              <div class="fc-airport" id="fc-dep1">Manila · MNL</div>
+              <div class="fc-date">Fri, 17 May 2025</div>
+            </div>
+            <div class="fc-mid">
+              <div class="fc-duration">1h 15m</div>
+              <div class="fc-line"><span class="fc-plane-icon"><i class="bi bi-airplane-fill"></i></span></div>
+              <div class="fc-stops">Direct</div>
+            </div>
+            <div class="fc-endpoint">
+              <div class="fc-time">09:25</div>
+              <div class="fc-airport" id="fc-arr1">Cebu · CEB</div>
+              <div class="fc-date">Fri, 17 May 2025</div>
+            </div>
+            <div class="fc-price-box">
+              <span class="fc-badge">Cheapest Price</span>
+              <div class="fc-price-amt">₱2,490</div>
+              <div class="fc-price-note">operated by Flight606</div>
+              <button class="fc-select-btn" onclick="event.stopPropagation(); goNav(null,'book-flight')">Select →</button>
+            </div>
+          </div>
+
+          <div class="flight-card" onclick="selectFlight(this)">
+            <div class="fc-endpoint">
+              <div class="fc-time">14:30</div>
+              <div class="fc-airport" id="fc-dep2">Manila · MNL</div>
+              <div class="fc-date">Fri, 17 May 2025</div>
+            </div>
+            <div class="fc-mid">
+              <div class="fc-duration">1h 20m</div>
+              <div class="fc-line"><span class="fc-plane-icon"><i class="bi bi-airplane-fill"></i></span></div>
+              <div class="fc-stops">Direct</div>
+            </div>
+            <div class="fc-endpoint">
+              <div class="fc-time">15:50</div>
+              <div class="fc-airport" id="fc-arr2">Cebu · CEB</div>
+              <div class="fc-date">Fri, 17 May 2025</div>
+            </div>
+            <div class="fc-price-box">
+              <div class="fc-price-amt" style="color: #e05252;">₱3,800</div>
+              <div class="fc-price-note">operated by AirAsia</div>
+              <button class="fc-select-btn" onclick="event.stopPropagation(); goNav(null,'book-flight')">Select →</button>
+            </div>
+          </div>
+
+          <div class="view-more-wrap"><button class="view-more-btn" onclick="alert('Loading more flights…')">View more ↓</button></div>
+
+          <!-- Return results -->
+          <div class="results-banner gold-banner-dim mt-5">
+            ✈ Select return flight from <strong id="sf-to-label2">Cebu (CEB)</strong> to <strong id="sf-from-label2">Manila (MNL)</strong>
+          </div>
+
+          <div class="date-scroll-row">
+            <span class="date-arrow">‹</span>
+            <div class="date-chips">
+              <span class="date-chip">Mon 27 May</span><span class="date-chip">Tue 28 May</span><span class="date-chip">Wed 29 May</span>
+              <span class="date-chip">Thu 30 May</span><span class="date-chip active">Fri 31 May</span><span class="date-chip">Sat 1 Jun</span>
+            </div>
+            <span class="date-arrow">›</span>
+          </div>
+
+          <div class="flight-card selected" onclick="selectFlight(this)">
+            <div class="fc-endpoint">
+              <div class="fc-time">10:00</div>
+              <div class="fc-airport" id="fc-ret-dep1">Cebu · CEB</div>
+              <div class="fc-date">Fri, 31 May 2025</div>
+            </div>
+            <div class="fc-mid">
+              <div class="fc-duration">1h 15m</div>
+              <div class="fc-line"><span class="fc-plane-icon"><i class="bi bi-airplane-fill"></i></span></div>
+              <div class="fc-stops">Direct</div>
+            </div>
+            <div class="fc-endpoint">
+              <div class="fc-time">11:15</div>
+              <div class="fc-airport" id="fc-ret-arr1">Manila · MNL</div>
+              <div class="fc-date">Fri, 31 May 2025</div>
+            </div>
+            <div class="fc-price-box">
+              <span class="fc-badge">Cheapest Price</span>
+              <div class="fc-price-amt">₱2,490</div>
+              <div class="fc-price-note">operated by Flight606</div>
+              <button class="fc-select-btn" onclick="event.stopPropagation(); goNav(null,'book-flight')">Select →</button>
+            </div>
+          </div>
+
+          <div class="flight-card" onclick="selectFlight(this)">
+            <div class="fc-endpoint">
+              <div class="fc-time">17:45</div>
+              <div class="fc-airport" id="fc-ret-dep2">Cebu · CEB</div>
+              <div class="fc-date">Fri, 31 May 2025</div>
+            </div>
+            <div class="fc-mid">
+              <div class="fc-duration">1h 20m</div>
+              <div class="fc-line"><span class="fc-plane-icon"><i class="bi bi-airplane-fill"></i></span></div>
+              <div class="fc-stops">Direct</div>
+            </div>
+            <div class="fc-endpoint">
+              <div class="fc-time">19:05</div>
+              <div class="fc-airport" id="fc-ret-arr2">Manila · MNL</div>
+              <div class="fc-date">Fri, 31 May 2025</div>
+            </div>
+            <div class="fc-price-box">
+              <div class="fc-price-amt" style="color: #e05252;">₱3,600</div>
+              <div class="fc-price-note">operated by Cebu Pacific</div>
+              <button class="fc-select-btn" onclick="event.stopPropagation(); goNav(null,'book-flight')">Select →</button>
+            </div>
+          </div>
+
+          <div class="view-more-wrap mb-5"><button class="view-more-btn" onclick="alert('Loading more flights…')">View more ↓</button></div>
+        </div>
+      </div>
+
+      <footer class="site-footer">
+        <div class="container">
+          <div class="footer-bottom" style="border-top: none; padding-top: 0;">
+            <div class="footer-legal">
+              <a href="#">Legal</a><a href="#">Privacy</a><a href="#">Accessibility</a><a href="#">Terms & Conditions</a>
+            </div>
+            <span class="footer-copy">© Batch 606</span>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+
+  <!-- ══════════ BOOK A FLIGHT ══════════ -->
+  <div id="page-book-flight" class="page">
+    <div class="inner-page">
+      <div class="page-body pt-5">
+        <div class="container">
+          <div class="booking-layout">
+
+            <!-- Receipt sidebar -->
+            <div class="receipt-card">
+              <div class="receipt-title"><i class="bi bi-receipt"></i> Receipt</div>
+              <div class="receipt-sub">Flight tickets</div>
+              <div class="receipt-row"><span>2× Flight tickets</span><span>₱ 4,980.00</span></div>
+              <div class="receipt-row"><span>1× Ticket discount</span><span class="text-success">− ₱ 50.00</span></div>
+              <div class="receipt-total"><span>Total</span><span class="receipt-total-amt">₱ 4,930.00</span></div>
+            </div>
+
+            <!-- Booking form -->
+            <div class="booking-form">
+              <!-- Flight summary -->
+              <div class="flight-summary-strip">
+                <span class="fs-label">Selected Flights</span>
+                <span id="booking-flight-summary">Fri May 17 &nbsp; MNL – CEB &nbsp;|&nbsp; Fri May 31 &nbsp; CEB – MNL</span>
+              </div>
+
+              <!-- Passenger 1 -->
+              <div class="booking-section">
+                <div class="bs-header" onclick="toggleSection(this)">
+                  <div class="bs-header-left">
+                    <div class="bs-icon"><i class="bi bi-person"></i></div>
+                    <div><div class="bs-title">Adult 1</div><div class="bs-sub">+26 years old</div></div>
+                  </div>
+                  <span class="bs-toggle"><i class="bi bi-chevron-down"></i></span>
+                </div>
+                <div class="bs-body">
+                  <span class="passenger-tag"><i class="bi bi-person"></i> Adult 1</span>
+                  <p class="body-text small mb-3">Enter the names as they appear on the passport</p>
+                  <label class="r-lbl mb-3"><input type="checkbox" id="autofill-p1" onchange="autofillPassenger(1)"> <span>Autofill data from my profile</span></label>
+                  <div class="row g-3">
+                    <div class="col-6"><label class="f-label">First Name</label><input type="text" id="p1-fn" class="f-input" placeholder="First name"></div>
+                    <div class="col-6"><label class="f-label">Last Name</label><input type="text" id="p1-ln" class="f-input" placeholder="Last name"></div>
+                    <div class="col-6"><label class="f-label">Date of Birth</label><input type="date" id="p1-dob" class="f-input"></div>
+                    <div class="col-6"><label class="f-label">Gender</label><select class="f-input" id="p1-gender"><option value="">Select gender</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+                  </div>
+                  <button class="fc-select-btn mt-3" onclick="alert('Passenger 1 saved!')">Next Passenger →</button>
+                </div>
+              </div>
+
+              <!-- Passenger 2 -->
+              <div class="booking-section">
+                <div class="bs-header" onclick="toggleSection(this)">
+                  <div class="bs-header-left">
+                    <div class="bs-icon"><i class="bi bi-person"></i></div>
+                    <div><div class="bs-title">Adult 2</div><div class="bs-sub">+26 years old</div></div>
+                  </div>
+                  <span class="bs-toggle"><i class="bi bi-chevron-down"></i></span>
+                </div>
+                <div class="bs-body">
+                  <span class="passenger-tag"><i class="bi bi-person"></i> Adult 2</span>
+                  <div class="row g-3 mt-2">
+                    <div class="col-6"><label class="f-label">First Name</label><input type="text" id="p2-fn" class="f-input" placeholder="First name"></div>
+                    <div class="col-6"><label class="f-label">Last Name</label><input type="text" id="p2-ln" class="f-input" placeholder="Last name"></div>
+                    <div class="col-6"><label class="f-label">Date of Birth</label><input type="date" id="p2-dob" class="f-input"></div>
+                    <div class="col-6"><label class="f-label">Gender</label><select class="f-input"><option value="">Select gender</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Luggage -->
+              <div class="booking-section">
+                <div class="bs-header" onclick="toggleSection(this)">
+                  <div class="bs-header-left">
+                    <div class="bs-icon"><i class="bi bi-luggage"></i></div>
+                    <div><div class="bs-title">Luggage</div><div class="bs-sub">Hand and hold baggage</div></div>
+                  </div>
+                  <span class="bs-toggle"><i class="bi bi-chevron-up"></i></span>
+                </div>
+                <div class="bs-body">
+                  <span class="passenger-tag"><i class="bi bi-person"></i> Passenger 1</span>
+                  <div class="row g-4 mt-2">
+                    <div class="col-6">
+                      <h6 class="luggage-heading"><i class="bi bi-airplane-fill"></i> Outbound <small id="luggage-out-label">MNL → CEB</small></h6>
+                      <div class="luggage-item"><div class="luggage-label">Hand luggage</div><span class="luggage-included">✓ Hand luggage included</span></div>
+                      <div class="luggage-item"><div class="luggage-label">Additional luggage</div><select class="luggage-select"><option>No hold luggage</option><option>1 × 20kg – ₱800</option><option>1 × 32kg – ₱1,200</option></select></div>
+                    </div>
+                    <div class="col-6">
+                      <h6 class="luggage-heading"><i class="bi bi-airplane"></i> Return <small id="luggage-ret-label">CEB → MNL</small></h6>
+                      <div class="luggage-item"><div class="luggage-label">Hand luggage</div><span class="luggage-included">✓ Hand luggage included</span></div>
+                      <div class="luggage-item"><div class="luggage-label">Additional luggage</div><select class="luggage-select"><option>No hold luggage</option><option>1 × 20kg – ₱800</option><option>1 × 32kg – ₱1,200</option></select></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Seat Selection -->
+              <div class="booking-section">
+                <div class="bs-header" onclick="toggleSection(this)">
+                  <div class="bs-header-left">
+                    <div class="bs-icon"><i class="bi bi-ui-checks-grid"></i></div>
+                    <div><div class="bs-title">Select Seats</div><div class="bs-sub">Choose your seats</div></div>
+                  </div>
+                  <span class="bs-toggle"><i class="bi bi-chevron-up"></i></span>
+                </div>
+                <div class="bs-body">
+                  <div class="seat-flights">
+                    <button class="seat-flight-btn active"><i class="bi bi-airplane-fill"></i> Outbound MNL – CEB</button>
+                    <button class="seat-flight-btn" onclick="this.parentElement.querySelectorAll('.seat-flight-btn').forEach(b=>b.classList.remove('active')); this.classList.add('active'); alert('Showing return seat map')"><i class="bi bi-airplane"></i> Return CEB – MNL</button>
+                  </div>
+                  <p class="body-text small mb-3"><span class="seat selected-legend"></span> Passenger 1 – 11B &nbsp;&nbsp; <span class="seat available-legend"></span> Passenger 2 – Random</p>
+                  <div class="seat-map" id="seatMap"></div>
+                  <div class="seat-legend mt-3">
+                    <div class="sl-item"><div class="sl-box sl-available"></div> Available</div>
+                    <div class="sl-item"><div class="sl-box sl-selected"></div> Selected</div>
+                    <div class="sl-item"><div class="sl-box sl-taken"></div> Taken</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Payment method -->
+              <div class="booking-section">
+                <div class="bs-header" onclick="toggleSection(this)">
+                  <div class="bs-header-left">
+                    <div class="bs-icon"><i class="bi bi-credit-card"></i></div>
+                    <div><div class="bs-title">Payment Method</div><div class="bs-sub">Now all you need to do is pay</div></div>
+                  </div>
+                  <span class="bs-toggle"><i class="bi bi-chevron-up"></i></span>
+                </div>
+                <div class="bs-body">
+                  <div class="pay-cards">
+                    <label class="pay-card selected">
+                      <input type="radio" name="pay" checked>
+                      <div class="pay-logo visa-logo">VISA</div>
+                      <div><div class="pay-num">visa ••••••••5174</div><div class="pay-exp">Expires Jan 01, 2026</div></div>
+                    </label>
+                    <label class="pay-card">
+                      <input type="radio" name="pay">
+                      <div class="pay-logo mc-logo"><span style="color:#eb001b">●</span><span style="color:#f79e1b; margin-left:-8px">●</span></div>
+                      <div><div class="pay-num">mc ••••••••33333</div><div class="pay-exp">Expires Jan 05, 2026</div></div>
+                    </label>
+                    <div class="pay-new" onclick="alert('Redirecting to add new card…')"><span class="pay-add-icon">+</span> Another card…</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="d-flex justify-content-end mt-3 mb-5">
+                <button class="complete-btn" onclick="goNav(null,'confirm-payment')">Complete Booking and Pay →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="site-footer"><div class="container"><div class="footer-bottom" style="border-top:none;padding-top:0"><div class="footer-legal"><a href="#">Legal</a><a href="#">Privacy</a></div><span class="footer-copy">© Batch 606</span></div></div></footer>
+    </div>
+  </div>
+
+
+  <!-- ══════════ CONFIRM PAYMENT ══════════ -->
+  <div id="page-confirm-payment" class="page">
+    <div class="inner-page">
+      <div class="page-body pt-5">
+        <div class="container" style="max-width: 800px;">
+          <h1 class="confirm-headline">Confirm<br><em class="gold">information</em></h1>
+
+          <div class="confirm-section">
+            <div class="confirm-row">
+              <div class="confirm-pax"><div class="confirm-pax-icon"><i class="bi bi-person"></i></div><div class="confirm-pax-name">Adult 1 – Passenger One</div></div>
+              <div class="confirm-detail"><i class="bi bi-luggage"></i><span>Hand and hold baggage</span></div>
+              <div class="confirm-detail"><i class="bi bi-ui-checks-grid"></i><span>11B</span></div>
+            </div>
+            <div class="confirm-row">
+              <div class="confirm-pax"><div class="confirm-pax-icon"><i class="bi bi-person"></i></div><div class="confirm-pax-name">Adult 2 – Passenger Two</div></div>
+              <div class="confirm-detail"><i class="bi bi-luggage"></i><span>Hand and hold baggage</span></div>
+              <div class="confirm-detail"><i class="bi bi-ui-checks-grid"></i><span>11C</span></div>
+            </div>
+          </div>
+
+          <div class="confirm-section">
+            <h3 class="confirm-section-title"><i class="bi bi-credit-card"></i> Payment Method</h3>
+            <label class="pay-card selected" style="max-width: 280px;">
+              <div class="pay-logo visa-logo">VISA</div>
+              <div><div class="pay-num">visa ••••••••5174</div><div class="pay-exp">Expires Jan 01, 2026</div></div>
+            </label>
+          </div>
+
+          <div class="confirm-section">
+            <h3 class="confirm-section-title"><i class="bi bi-receipt"></i> Subtotal</h3>
+            <div class="subtotal-row"><span><span class="subtotal-qty">2×</span> Flight tickets</span><span>₱ 4,980.00</span></div>
+            <div class="subtotal-row"><span><span class="subtotal-qty">2×</span> Flight insurance</span><span>₱ 500.00</span></div>
+            <div class="subtotal-row"><span><span class="subtotal-qty">2×</span> Hold Luggage</span><span>₱ 1,600.00</span></div>
+            <div class="confirm-total"><span>Total :</span><span class="confirm-total-amt">₱ 7,080.00</span></div>
+          </div>
+
+          <div class="d-flex justify-content-end mt-3 mb-5">
+            <button class="complete-btn" onclick="goNav(null,'payment-success')">Confirm and Pay →</button>
+          </div>
+        </div>
+      </div>
+      <footer class="site-footer"><div class="container"><div class="footer-bottom" style="border-top:none;padding-top:0"><div class="footer-legal"><a href="#">Legal</a><a href="#">Privacy</a></div><span class="footer-copy">© Batch 606</span></div></div></footer>
+    </div>
+  </div>
+
+
+  <!-- ══════════ PAYMENT SUCCESS ══════════ -->
+  <div id="page-payment-success" class="page">
+    <div class="inner-page">
+      <div class="success-page">
+        <div class="success-icon">✓</div>
+        <h1 class="success-title">Booking Confirmed!</h1>
+        <p class="success-sub">Your payment has been <strong>successfully processed</strong>.<br>
+          Check the <a href="#" onclick="showPage('profile'); return false;" class="gold-link">wallet section</a> from your profile to see all available tickets.</p>
+        <p class="success-note">We will notify you two days before departure to prepare.<br>Until then, pack your bags and get ready for your trip.</p>
+        <div class="success-plane"><i class="bi bi-airplane-fill"></i></div>
+        <div class="success-actions">
+          <button class="btn-gold-full" onclick="goNav(null,'home')">Back to Home</button>
+          <button class="btn-outline-gold" onclick="goNav(null,'profile')">View My Bookings</button>
+        </div>
+      </div>
+      <footer class="site-footer"><div class="container"><div class="footer-bottom" style="border-top:none;padding-top:0"><div class="footer-legal"><a href="#">Legal</a><a href="#">Privacy</a></div><span class="footer-copy">© Batch 606</span></div></div></footer>
+    </div>
+  </div>
+
+
+  <!-- ══════════ CONTACT ══════════ -->
+  <div id="page-contact" class="page">
+    <div class="inner-page">
+      <div class="page-body pt-5">
+        <div class="container">
+          <div class="text-center mb-5">
+            <h1 class="section-title" style="font-family: 'Playfair Display', serif; font-size: clamp(2rem,4vw,3rem);">Contact <em class="gold">Us</em></h1>
+            <p class="body-text">Any question or remarks? Just write us a message!</p>
+          </div>
+          <div class="contact-layout">
+            <div class="contact-info">
+              <h2>Contact Information</h2>
+              <p>Say something to start a live chat!</p>
+              <div class="contact-detail"><div class="contact-icon"><i class="bi bi-telephone"></i></div><div>+1012 3456 789</div></div>
+              <div class="contact-detail"><div class="contact-icon"><i class="bi bi-envelope"></i></div><div>demo@flight606.com</div></div>
+              <div class="contact-detail"><div class="contact-icon"><i class="bi bi-geo-alt"></i></div><div>132 Dartmouth Street Boston,<br>Massachusetts 02156 United States</div></div>
+              <div class="contact-socials">
+                <a href="#" class="contact-soc"><i class="bi bi-twitter-x"></i></a>
+                <a href="#" class="contact-soc"><i class="bi bi-instagram"></i></a>
+                <a href="#" class="contact-soc"><i class="bi bi-chat"></i></a>
+              </div>
+            </div>
+            <div class="contact-form-panel">
+              <h3 class="mb-4">Send a Message</h3>
+              <div class="row g-3">
+                <div class="col-6"><label class="f-label">First Name</label><input type="text" class="f-input" placeholder="John"></div>
+                <div class="col-6"><label class="f-label">Last Name</label><input type="text" class="f-input" placeholder="Doe"></div>
+                <div class="col-6"><label class="f-label">Email</label><input type="email" class="f-input" placeholder="your@email.com"></div>
+                <div class="col-6"><label class="f-label">Phone Number</label><input type="tel" class="f-input" placeholder="+1 012 3456 789"></div>
+              </div>
+              <div class="mt-3">
+                <label class="f-label">Select Subject</label>
+                <div class="cf-subjects">
+                  <label class="r-lbl"><input type="radio" name="subj" checked><span>General Inquiry</span></label>
+                  <label class="r-lbl"><input type="radio" name="subj"><span>Booking Support</span></label>
+                  <label class="r-lbl"><input type="radio" name="subj"><span>Refunds</span></label>
+                  <label class="r-lbl"><input type="radio" name="subj"><span>Other</span></label>
+                </div>
+              </div>
+              <div class="mt-3">
+                <label class="f-label">Message</label>
+                <textarea class="f-input cf-textarea" placeholder="Write your message.."></textarea>
+              </div>
+              <div class="d-flex justify-content-end mt-3 mb-4">
+                <button class="btn-gold-full" style="width:auto; padding: 12px 36px;" onclick="alert('Message sent! We will reply within 24 hours.')">Send Message</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <footer class="site-footer"><div class="container"><div class="footer-bottom" style="border-top:none;padding-top:0"><div class="footer-legal"><a href="#">Legal</a><a href="#">Privacy</a></div><span class="footer-copy">© Batch 606</span></div></div></footer>
+    </div>
+  </div>
+
+
+  <!-- ══════════ PROFILE ══════════ -->
+  <div id="page-profile" class="page">
+    <div class="inner-page">
+      <div class="page-body pt-5">
+        <div class="container">
+          <div class="profile-layout">
+            <div class="profile-sidebar">
+              <div class="profile-avatar-wrap">
+                <div class="profile-avatar"><i class="bi bi-person-circle"></i><div class="avatar-edit"><i class="bi bi-pencil"></i></div></div>
+                <div class="profile-name-display">Passenger One</div>
+              </div>
+              <nav class="profile-nav">
+                <a href="#" class="active"><i class="bi bi-person"></i> Personal Details</a>
+                <a href="#" onclick="alert('My Credit Cards'); return false;"><i class="bi bi-credit-card"></i> My Credit Cards</a>
+                <a href="#" onclick="alert('Disabilities'); return false;"><i class="bi bi-universal-access"></i> Disabilities</a>
+                <a href="#" onclick="alert('Support'); return false;"><i class="bi bi-headset"></i> Support</a>
+                <a href="#" onclick="alert('Wallet'); return false;"><i class="bi bi-wallet2"></i> Wallet</a>
+                <a href="#" onclick="alert('Payment history'); return false;"><i class="bi bi-clock-history"></i> Payment History</a>
+                <div class="pn-sep"></div>
+                <a href="#" class="logout-nav" onclick="doLogout(); return false;"><i class="bi bi-box-arrow-right"></i> Log out</a>
+              </nav>
+            </div>
+            <div class="profile-main">
+              <div class="profile-section">
+                <div class="ps-header"><h3>Personal Details</h3></div>
+                <div class="ps-body">
+                  <div class="row g-3">
+                    <div class="col-4"><label class="f-label">First Name</label><input type="text" class="f-input" value="Passenger"></div>
+                    <div class="col-4"><label class="f-label">Middle Name</label><input type="text" class="f-input" placeholder="Middle"></div>
+                    <div class="col-4"><label class="f-label">Last Name</label><input type="text" class="f-input" value="One"></div>
+                    <div class="col-4"><label class="f-label">Pronouns</label><select class="f-input"><option>They/them</option><option>He/him</option><option>She/her</option></select></div>
+                    <div class="col-4"><label class="f-label">Gender</label><select class="f-input"><option>Gender fluid</option><option>Male</option><option>Female</option></select></div>
+                    <div class="col-4"><label class="f-label">Citizenship</label><select class="f-input"><option>Filipino</option><option>American</option><option>British</option></select></div>
+                    <div class="col-12"><label class="f-label">Phone Number</label><input type="tel" class="f-input" value="(+63) 123-456-789"></div>
+                  </div>
+                  <button class="btn-gold mt-3" onclick="alert('Personal details saved!')">Save</button>
+                </div>
+              </div>
+              <div class="profile-section">
+                <div class="ps-header"><h3>Account Details</h3></div>
+                <div class="ps-body">
+                  <div class="ps-account-row"><span class="ps-account-label">Email</span><div class="d-flex align-items-center gap-3"><span>passenger@flight606.com</span><a href="#" class="gold-link" onclick="alert('Change password'); return false;">change password</a></div></div>
+                  <div class="ps-account-row"><span class="ps-account-label">Account number</span><span style="font-family: monospace;">784652739272434</span></div>
+                </div>
+              </div>
+              <div class="profile-section">
+                <div class="ps-header"><h3>Payment Methods</h3></div>
+                <div class="ps-body">
+                  <label class="pay-card selected mb-3"><input type="radio" name="profile-pay" checked><div class="pay-logo visa-logo">VISA</div><div><div class="pay-num">visa ••••••••5174</div><div class="pay-exp">Expires Jan 01, 2026</div></div></label>
+                  <label class="pay-card"><input type="radio" name="profile-pay"><div class="pay-logo mc-logo"><span style="color:#eb001b">●</span><span style="color:#f79e1b;margin-left:-8px">●</span></div><div><div class="pay-num">mc ••••••••33333</div><div class="pay-exp">Expires Jan 05, 2026</div></div></label>
+                  <button class="btn-gold mt-3" onclick="alert('Add new card')">+ Add new card</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <footer class="site-footer"><div class="container"><div class="footer-bottom" style="border-top:none;padding-top:0"><div class="footer-legal"><a href="#">Legal</a><a href="#">Privacy</a></div><span class="footer-copy">© Batch 606</span></div></div></footer>
+    </div>
+  </div>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="index.js"></script>
+</body>
+</html>
