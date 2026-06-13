@@ -53,7 +53,7 @@
           <a class="btn-gold" href="#" onclick="showPage('signup'); return false;">Sign Up</a>
         </div>
 
-        <div class="nav-actions d-flex align-items-center gap-2" id="nav-logged-in" style="display:none!important">
+        <div class="nav-actions d-flex align-items-center gap-2 ms-3" id="nav-logged-in" style="display:none!important">
           <div class="profile-dropdown" id="profileDropdown">
             <button class="profile-trigger" onclick="toggleProfileMenu()">
               <i class="bi bi-person-circle"></i>
@@ -449,8 +449,20 @@
         </div>
       </div>
 
-      <div class="page-body">
+      <div class="page-body mt-5">
         <div class="container">
+          
+          <!-- Breadcrumbs -->
+          <nav class="theme-breadcrumb" aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+              <li class="breadcrumb-item">
+                <a href="#" onclick="goNav(this,'home')">Home</a>
+              </li>
+              <li class="breadcrumb-item active" aria-current="page">Flights
+              </li>
+            </ol>
+          </nav>
+
           <!-- Search bar -->
           <div class="sf-search-bar">
             <div class="d-flex gap-4 mb-3 flex-wrap">
@@ -650,18 +662,23 @@
       <div class="page-body pt-5">
         <div class="container">
           <div class="booking-layout">
-
-            <!-- Receipt sidebar -->
-            <div class="receipt-card">
-              <div class="receipt-title"><i class="bi bi-receipt"></i> Receipt</div>
-              <div class="receipt-sub">Flight tickets</div>
-              <div class="receipt-row"><span>2× Flight tickets</span><span>₱ 4,980.00</span></div>
-              <div class="receipt-row"><span>1× Ticket discount</span><span class="text-success">− ₱ 50.00</span></div>
-              <div class="receipt-total"><span>Total</span><span class="receipt-total-amt">₱ 4,930.00</span></div>
-            </div>
-
             <!-- Booking form -->
             <div class="booking-form">
+
+              <!-- Breadcrumbs -->
+              <nav class="theme-breadcrumb" aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                  <li class="breadcrumb-item">
+                    <a href="#" onclick="goNav(this,'home')">Home</a>
+                  </li>
+                  <li class="breadcrumb-item">
+                    <a href="#" onclick="goNav(this,'search-flights')">Flights</a>
+                  </li>
+                  <li class="breadcrumb-item active" aria-current="page">Booking Form
+                  </li>
+                </ol>
+              </nav>
+
               <!-- Flight summary -->
               <div class="flight-summary-strip">
                 <span class="fs-label">Selected Flights</span>
@@ -787,10 +804,26 @@
                 </div>
               </div>
 
-              <div class="d-flex justify-content-end mt-3 mb-5">
+              <!-- Button for large -->
+              <div class="d-flex d-none d-lg-block justify-content-end mt-3 mb-5">
                 <button class="complete-btn" onclick="goNav(null,'confirm-payment')">Complete Booking and Pay →</button>
               </div>
             </div>
+
+            <!-- Receipt sidebar -->
+            <div class="receipt-card">
+              <div class="receipt-title"><i class="bi bi-receipt"></i> Receipt</div>
+              <div class="receipt-sub">Flight tickets</div>
+              <div class="receipt-row"><span>2× Flight tickets</span><span>₱ 4,980.00</span></div>
+              <div class="receipt-row"><span>1× Ticket discount</span><span class="text-success">− ₱ 50.00</span></div>
+              <div class="receipt-total"><span>Total</span><span class="receipt-total-amt">₱ 4,930.00</span></div>
+            </div>
+
+            <!-- Button for small/medium -->
+            <div class="d-sm-block d-lg-none complete-btn-wrap">
+              <button class="complete-btn" onclick="goNav(null,'confirm-payment')">Complete Booking and Pay →</button>
+            </div>
+
           </div>
         </div>
       </div>
@@ -807,7 +840,25 @@
         <div class="container" style="max-width: 800px;">
           <h1 class="confirm-headline">Confirm<br><em class="gold">information</em></h1>
 
-          <div class="confirm-section">
+          <!-- Breadcrumbs -->
+          <nav class="theme-breadcrumb" aria-label="breadcrumb">
+              <ol class="breadcrumb mb-0">
+                  <li class="breadcrumb-item">
+                      <a href="#" onclick="goNav(this,'home')">Home</a>
+                  </li>
+                  <li class="breadcrumb-item">
+                      <a href="#" onclick="goNav(this,'search-flights')">Flights</a>
+                  </li>
+                  <li class="breadcrumb-item">
+                      <a href="#" onclick="goNav(this,'book-flight')">Booking Form</a>
+                  </li>
+                  <li class="breadcrumb-item active" aria-current="page">
+                      Confirm Payment
+                  </li>
+              </ol>
+          </nav>
+
+          <div class="confirm-section mt-3">
             <div class="confirm-row">
               <div class="confirm-pax"><div class="confirm-pax-icon"><i class="bi bi-person"></i></div><div class="confirm-pax-name">Adult 1 – Passenger One</div></div>
               <div class="confirm-detail"><i class="bi bi-luggage"></i><span>Hand and hold baggage</span></div>
@@ -858,7 +909,9 @@
         <div class="success-plane"><i class="bi bi-airplane-fill"></i></div>
         <div class="success-actions">
           <button class="btn-gold-full" onclick="goNav(null,'home')">Back to Home</button>
-          <button class="btn-outline-gold" onclick="goNav(null,'profile')">View My Bookings</button>
+        </div>
+        <div>
+          <button class="btn-gold-full" onclick="goNav(null,'profile')">View My Bookings</button>
         </div>
       </div>
       <footer class="site-footer"><div class="container"><div class="footer-bottom" style="border-top:none;padding-top:0"><div class="footer-legal"><a href="#">Legal</a><a href="#">Privacy</a></div><span class="footer-copy">© Batch 606</span></div></div></footer>
