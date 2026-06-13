@@ -18,7 +18,6 @@ watch([email, password], (currentValue) => {
 });
 
 async function handleSubmit() {
-  // Clear previous errors
   if (!email.value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
     notyf.error("Please enter a valid email address.");
     return;
@@ -34,8 +33,7 @@ async function handleSubmit() {
       notyf.success("Login Successful");
       localStorage.setItem("token", response.data.access);
 
-      // TODO: implement getUserDetails or remove this line
-      // getUserDetails(response.data.access);
+      getUserDetails(response.data.access);
 
       email.value = "";
       password.value = "";
@@ -71,7 +69,7 @@ onBeforeMount(() => {
             <p class="auth-sub">Your Exclusive Gateway to <span class="gold">First-class</span> Journey</p>
             <blockquote class="auth-quote">
               <p>"Flight606 is the only Airline where the journey becomes your destination"</p>
-              <footer>— Manny Paksiu</footer>
+              <footer>— Manny Paksiw</footer>
             </blockquote>
           </div>
           <div class="col-lg-6">

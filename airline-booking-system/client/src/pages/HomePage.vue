@@ -1,7 +1,7 @@
 <script setup>
-	import HeroComponent from '@/components/HeroComponent.vue';
-    import TourPlanComponent from '@/components/TourPlanComponent.vue';
-    import AboutComponent from '@/components/AboutComponent.vue';
+	import HeroComponent from '../components/HeroComponent.vue';
+    import TourPlanComponent from '../components/TourPlanComponent.vue';
+    import AboutComponent from '../components/AboutComponent.vue';
 </script>
 
 <template>
@@ -9,9 +9,6 @@
     
     <!-- 1. Combined Header & Banner inside the Video Container -->
     <div>
-      <header class="relative z-20">
-          <!-- Your navigation content goes here -->
-      </header>
       <HeroComponent />
     </div>
 
