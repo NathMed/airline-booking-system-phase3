@@ -1,61 +1,68 @@
 <script setup>
-import { watch, ref, onBeforeMount } from 'vue';
-import { Notyf } from 'notyf';
-import { useRouter } from 'vue-router';
-import api from '../api.js';
+  import { watch, ref, onBeforeMount } from 'vue';
+  import { Notyf } from 'notyf';
+  import { useRouter } from 'vue-router';
+  import api from '../api.js';
 
-const router = useRouter();
+  const notyf = new Notyf();
 
-const email = ref("");
-const password = ref("");
-const isEnabled = ref(false);
-const showPassword = ref(false);
+  const router = useRouter();
 
-const notyf = new Notyf();
+  const email = ref("");
+  const password = ref("");
+  const isEnabled = ref(false);
+  const showPassword = ref(false);
+  const isLoading = ref(false);
 
-watch([email, password], (currentValue) => {
-  isEnabled.value = currentValue.every(input => input !== "");
-});
 
-async function handleSubmit() {
-  if (!email.value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
-    notyf.error("Please enter a valid email address.");
-    return;
+  watch([email, password], (currentValue) => {
+      isEnabled.value = currentValue.every(input => input !== "");
+  });
+
+  async function handleSubmit() {
+    if (!email.value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+      notyf.error("Please enter a valid email address.");
+      return;
+    }
+
+    isLoading.value = true;
+
+    try {
+      const response = await api.post(`/users/login`, {
+        email: email.value,
+        password: password.value,
+      });
+
+      if (response.data.access) {
+        localStorage.setItem("token", response.data.access);
+
+        notyf.success(response.data.message);
+            
+            email.value = "";
+            password.value = "";
+            router.push({ path: '/' });
+
+        } else {
+          notyf.error("Login Failed. Please contact administrator.");
+      }
+    } catch (e) {
+      const message = e.response?.data?.message;
+
+      if (message) {
+            notyf.error(message);
+        } else {
+            notyf.error("Login Failed. Please contact administrator.");
+        }
+    } finally {
+        isLoading.value = false;
+    }
   }
 
-  try {
-    const response = await api.post(`/users/login`, {
-      email: email.value,
-      password: password.value,
-    });
-
-    if (response.data) {
-      notyf.success("Login Successful");
-      localStorage.setItem("token", response.data.access);
-
-      getUserDetails(response.data.access);
-
-      email.value = "";
-      password.value = "";
+  onBeforeMount(() => {
+    if (localStorage.getItem("token")) {
       router.push({ path: '/' });
-    } else {
-      notyf.error("Login Failed. Please contact administrator.");
     }
-  } catch (e) {
-    const status = e.response?.status;
-    if (status === 404 || status === 401 || status === 400) {
-      notyf.error(e.response.data.error);
-    } else {
-      notyf.error("Login Failed. Please contact administrator.");
-    }
-  }
-}
-
-onBeforeMount(() => {
-  if (localStorage.getItem("token")) {
-    router.push({ path: '/home' });
-  }
-});
+  });
 </script>
 
 <template>
@@ -73,7 +80,7 @@ onBeforeMount(() => {
             </blockquote>
           </div>
           <div class="col-lg-6">
-            <div class="auth-card">
+            <form class="auth-card" @submit.prevent="handleSubmit" novalidate>
               <p class="a-tag">Welcome back</p>
               <h2 class="a-title">Login to your <span class="gold">account</span></h2>
               <div class="mb-3">
@@ -106,9 +113,10 @@ onBeforeMount(() => {
               <button
                 class="btn-gold-full"
                 :disabled="!isEnabled"
+                :style="{ opacity: isEnabled ? 1 : 0.5, cursor: isEnabled ? 'pointer' : 'not-allowed' }"
                 @click="handleSubmit"
               >
-                Login Now
+                {{ isEnabled ? 'Login Now' : 'Enter your credentials' }}
               </button>
               <button class="oauth-btn">
                 <img src="https://www.google.com/favicon.ico" width="14" alt="G"> Continue with Google
@@ -118,9 +126,9 @@ onBeforeMount(() => {
               </button>
               <p class="switch-link">
                 Don't have an account?
-                <a href="#" class="gold-link">Sign Up</a>
+                <router-link to='/register' class="gold-link">Sign Up</router-link>
               </p>
-            </div>
+            </form>
           </div>
         </div>
       </div>
