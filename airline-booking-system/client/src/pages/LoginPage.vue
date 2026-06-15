@@ -10,6 +10,7 @@ const email = ref("");
 const password = ref("");
 const isEnabled = ref(false);
 const showPassword = ref(false);
+const isLoading = ref(false);
 
 const notyf = new Notyf();
 
@@ -18,10 +19,16 @@ watch([email, password], (currentValue) => {
 });
 
 async function handleSubmit() {
+  // 1. Prevent execution if already loading
+  if (isLoading.value) return;
+
   if (!email.value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
     notyf.error("Please enter a valid email address.");
     return;
   }
+
+  // 2. Set loading state to true
+  isLoading.value = true;
 
   try {
     const response = await api.post(`/users/login`, {
@@ -32,9 +39,7 @@ async function handleSubmit() {
     if (response.data) {
       notyf.success("Login Successful");
       localStorage.setItem("token", response.data.access);
-
       getUserDetails(response.data.access);
-
       email.value = "";
       password.value = "";
       router.push({ path: '/' });
@@ -48,8 +53,12 @@ async function handleSubmit() {
     } else {
       notyf.error("Login Failed. Please contact administrator.");
     }
+  } finally {
+    // 3. Reset loading state regardless of success or failure
+    isLoading.value = false;
   }
 }
+
 
 onBeforeMount(() => {
   if (localStorage.getItem("token")) {
@@ -103,12 +112,19 @@ onBeforeMount(() => {
                 <label class="r-lbl"><input type="checkbox"> <span>Remember me</span></label>
                 <a href="#" class="gold-link">Forgot password?</a>
               </div>
-              <button
+              <!-- <button
                 class="btn-gold-full"
                 :disabled="!isEnabled"
                 @click="handleSubmit"
               >
                 Login Now
+              </button> -->
+              <button 
+                class="btn-gold-full"
+                @click="handleSubmit" 
+                :disabled="!isEnabled || isLoading"
+              >
+                {{ isLoading ? 'Loading...' : 'Login Now' }}
               </button>
               <button class="oauth-btn">
                 <img src="https://www.google.com/favicon.ico" width="14" alt="G"> Continue with Google
