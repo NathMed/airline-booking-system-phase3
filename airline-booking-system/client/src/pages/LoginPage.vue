@@ -19,7 +19,6 @@ watch([email, password], (currentValue) => {
 });
 
 async function handleSubmit() {
-  // 1. Prevent execution if already loading
   if (isLoading.value) return;
 
   if (!email.value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
@@ -27,7 +26,6 @@ async function handleSubmit() {
     return;
   }
 
-  // 2. Set loading state to true
   isLoading.value = true;
 
   try {
@@ -54,11 +52,9 @@ async function handleSubmit() {
       notyf.error("Login Failed. Please contact administrator.");
     }
   } finally {
-    // 3. Reset loading state regardless of success or failure
     isLoading.value = false;
   }
 }
-
 
 onBeforeMount(() => {
   if (localStorage.getItem("token")) {
