@@ -1,80 +1,87 @@
 <script setup>
-import { watch, ref, onBeforeMount } from 'vue';
-import { Notyf } from 'notyf';
-import { useRouter } from 'vue-router';
-import api from '../api.js';
+    import { watch, ref, onBeforeMount } from 'vue';
+    import { Notyf } from 'notyf';
+    import { useRouter } from 'vue-router';
+    import api from '../api.js';
 
-const firstName = ref("");
-const lastName = ref("");
-const email = ref("");
-const password = ref("");
-const confirmPassword = ref("");
-const isEnabled = ref(false);
-const showPassword = ref(false);
-const showConfirmPassword = ref(false);
-const isLoading = ref(false);
-const termsAccepted = ref(false);
+    const firstName = ref("");
+    const lastName = ref("");
+    const email = ref("");
+    const password = ref("");
+    const confirmPassword = ref("");
+    const phone = ref("");
+    const gender = ref("");
+    const isEnabled = ref(false);
+    const showPassword = ref(false);
+    const showConfirmPassword = ref(false);
+    const isLoading = ref(false);
+    const termsAccepted = ref(false);
 
-const notyf = new Notyf();
-const router = useRouter();
+    const notyf = new Notyf();
+    const router = useRouter();
 
 
-watch([firstName, lastName, email, password, confirmPassword, termsAccepted], (currentValue) => {
-    const [fn, ln, em, pw, cp, terms] = currentValue;
-    const allFilled = [fn, ln, em, pw, cp].every(v => v !== "");
-    const passwordsMatch = pw === cp;
-    isEnabled.value = allFilled && passwordsMatch && terms;
-});
+    watch([firstName, lastName, email, password, confirmPassword, phone, gender, termsAccepted], (currentValue) => {
+        const [fn, ln, em, pw, cp, ph, gen, terms] = currentValue;
+        const allFilled = [fn, ln, em, pw, cp, ph, gen].every(v => v !== "");
+        const passwordsMatch = pw === cp;
+        isEnabled.value = allFilled && passwordsMatch && terms;
+    });
 
-async function handleSubmit() {
-    if (!isEnabled.value || isLoading.value) return;
+    async function handleSubmit() {
+        if (!isEnabled.value || isLoading.value) return;
+        isLoading.value = true;
 
-    isLoading.value = true;
+        try {
+            const response = await api.post('users/register', {
+                firstName: firstName.value,
+                lastName: lastName.value,
+                email: email.value,
+                password: password.value,
+                confirmPassword: confirmPassword.value,  // backend validates this too
+                phone: phone.value,
+                gender: gender.value
+            });
 
-    try {
-        const response = await api.post('users/register', {
-            firstName: firstName.value,
-            lastName: lastName.value,
-            email: email.value,
-            password: password.value
-        });
+            if (response.status === 201) {
+                notyf.success(response.data.message);
 
-        if (response.status === 201) {
-            notyf.success(response.data.message);
+                firstName.value = "";
+                lastName.value = "";
+                email.value = "";
+                password.value = "";
+                confirmPassword.value = "";
+                phone.value = "";
+                gender.value = "";
+                termsAccepted.value = false;
 
-            firstName.value = "";
-            lastName.value = "";
-            email.value = "";
-            password.value = "";
-            confirmPassword.value = "";
-            termsAccepted.value = false;
+                router.push({ path: '/login' });
+            } else {
+                notyf.error("Registration Failed. Please contact administrator.");
+            }
+        } catch (e) {
+            const message = e.response?.data?.message;
 
-            router.push({ path: '/login' });
-        } else {
-            notyf.error("Registration Failed. Please contact administrator.");
+            if (message) {
+                notyf.error(message);
+            } else {
+                notyf.error("Registration Failed. Please contact administrator.");
+            }
+        } finally {
+            isLoading.value = false;
         }
-    } catch (e) {
-        const status = e.response?.status;
-        if ([400, 401, 404, 409].includes(status)) {
-            notyf.error(e.response.data.error);
-        } else {
-            notyf.error("Registration Failed. Please contact administrator.");
+    }
+
+    function togglePass(field) {
+        if (field === 'password') showPassword.value = !showPassword.value;
+        else showConfirmPassword.value = !showConfirmPassword.value;
+    }
+
+    onBeforeMount(() => {
+        if (localStorage.getItem("token")) {
+            router.push({ path: '/' });
         }
-    } finally {
-        isLoading.value = false;
-    }
-}
-
-function togglePass(field) {
-    if (field === 'password') showPassword.value = !showPassword.value;
-    else showConfirmPassword.value = !showConfirmPassword.value;
-}
-
-onBeforeMount(() => {
-    if (localStorage.getItem("token")) {
-        router.push({ path: '/' });
-    }
-});
+    });
 </script>
 
 <template>
@@ -137,6 +144,31 @@ onBeforeMount(() => {
                                 <div class="col-6">
                                     <label class="f-label">Date of Birth</label>
                                     <input type="date" class="f-input" />
+                                </div>
+
+                                <div class="col-6">
+                                    <label class="f-label">Phone Number</label>
+                                    <input
+                                        v-model="phone"
+                                        type="tel"
+                                        class="f-input"
+                                        placeholder="09XXXXXXXXX"
+                                        maxlength="11"
+                                        @input="phone = phone.replace(/\D/g, '')"
+                                    />
+                                    <p v-if="phone.length > 0 && phone.length !== 11" class="err-msg">
+                                        Phone number must be 11 digits.
+                                    </p>
+                                </div>
+
+                                <div class="col-6">
+                                    <label class="f-label">Gender</label>
+                                    <select v-model="gender" class="f-input">
+                                        <option value="" disabled>Select gender</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
                                 </div>
 
                                 <div class="col-6">

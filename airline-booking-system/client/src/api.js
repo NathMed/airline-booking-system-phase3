@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-	baseURL: import.meta.env.FLIGHT_606_API
+	baseURL: import.meta.env.VITE_FLIGHT_606_API
 })
 
 api.interceptors.request.use((config) => {
