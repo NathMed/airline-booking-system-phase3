@@ -1,8 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-    baseURL: "http://localhost:8000",
-});
+    baseURL: import.meta.env.VITE_FLIGHT_606_API});
 
 // Attach token to every request if available
 api.interceptors.request.use((config) => {
