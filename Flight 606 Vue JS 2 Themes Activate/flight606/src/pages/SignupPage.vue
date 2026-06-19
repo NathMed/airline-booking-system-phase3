@@ -1,5 +1,6 @@
 <script setup>
 import { ref, inject } from 'vue'
+import { registerUser } from '../api.js'
 
 const showPage = inject('showPage')
 
@@ -7,6 +8,8 @@ const fn    = ref(''); const fnErr  = ref(false)
 const ln    = ref(''); const lnErr  = ref(false)
 const em    = ref(''); const emErr  = ref(false)
 const dob   = ref('')
+const gender = ref(''); const genderErr = ref(false)
+const phone  = ref(''); const phoneErr  = ref(false)
 const pw    = ref(''); const pwErr  = ref(false)
 const cp    = ref(''); const cpErr  = ref(false)
 const terms = ref(false); const termsErr = ref(false)
@@ -14,18 +17,45 @@ const showPw  = ref(false)
 const showCp  = ref(false)
 const success = ref(false)
 
-function doSignup() {
+// Server-side errors that can't be caught by client-side validation alone
+const serverError = ref('')
+const isSubmitting = ref(false)
+
+async function doSignup() {
+  serverError.value = ''
+
   fnErr.value = !fn.value.trim()
   lnErr.value = !ln.value.trim()
   emErr.value = !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em.value)
+  genderErr.value = !gender.value
+  
+  // Clean validation matches the restricted 11-digit input entry
+  phoneErr.value = phone.value.length !== 11
   pwErr.value = pw.value.length < 8
   cpErr.value = pw.value !== cp.value
   termsErr.value = !terms.value
 
-  if (fnErr.value || lnErr.value || emErr.value || pwErr.value || cpErr.value || termsErr.value) return
+  if (fnErr.value || lnErr.value || emErr.value || genderErr.value || phoneErr.value || pwErr.value || cpErr.value || termsErr.value) return
 
-  success.value = true
-  setTimeout(() => showPage('login'), 1800)
+  isSubmitting.value = true
+  try {
+    await registerUser({
+      firstName: fn.value.trim(),
+      lastName: ln.value.trim(),
+      email: em.value.trim(),
+      password: pw.value,
+      confirmPassword: cp.value,
+      phone: phone.value, // Already guaranteed to be digits only due to input filter
+      gender: gender.value
+    })
+
+    success.value = true
+    setTimeout(() => showPage('login'), 1800)
+  } catch (error) {
+    serverError.value = error.response?.data?.message || 'Something went wrong. Please try again.'
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
@@ -48,6 +78,7 @@ function doSignup() {
               <p class="a-tag">Welcome to Flight606</p>
               <h2 class="a-title">Create <span class="gold">account</span></h2>
               <div v-if="success" class="alert-msg alert-success">Account created! Redirecting to login…</div>
+              <div v-if="serverError" class="alert-msg alert-danger">{{ serverError }}</div>
               <div class="row g-3">
                 <div class="col-6">
                   <label class="f-label">First Name</label>
@@ -67,6 +98,28 @@ function doSignup() {
                 <div class="col-6">
                   <label class="f-label">Date of Birth</label>
                   <input type="date" class="f-input" v-model="dob">
+                </div>
+                <div class="col-6">
+                  <label class="f-label">Gender</label>
+                  <select class="f-input" :class="{ err: genderErr }" v-model="gender">
+                    <option value="" disabled>Select gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                  <p v-if="genderErr" class="err-msg">Gender is required.</p>
+                </div>
+                <div class="col-6">
+                  <label class="f-label">Phone Number</label>
+                  <input 
+                    type="tel" 
+                    class="f-input" 
+                    :class="{ err: phoneErr }" 
+                    v-model="phone" 
+                    maxlength="11"
+                    @input="phone = phone.replace(/\D/g, '')"
+                    placeholder="09171234567"
+                  >
+                  <p v-if="phoneErr" class="err-msg">Phone number must be 11 digits.</p>
                 </div>
                 <div class="col-6">
                   <label class="f-label">Password</label>
@@ -90,7 +143,9 @@ function doSignup() {
                 <span>I agree to all the <a href="#" class="gold-link">Terms</a> and <a href="#" class="gold-link">Privacy Policy</a></span>
               </label>
               <p v-if="termsErr" class="err-msg mt-1">You must agree to the terms.</p>
-              <button class="btn-gold-full mt-3" @click="doSignup">Create Account</button>
+              <button class="btn-gold-full mt-3" @click="doSignup" :disabled="isSubmitting">
+                {{ isSubmitting ? 'Creating account…' : 'Create Account' }}
+              </button>
               <button class="oauth-btn"><img src="https://www.google.com/favicon.ico" width="14" alt="G"> Continue with Google</button>
               <button class="oauth-btn"><i class="bi bi-apple"></i> Continue with Apple</button>
               <p class="switch-link">Already have an account? <a href="#" @click.prevent="showPage('login')" class="gold-link">Log In</a></p>
