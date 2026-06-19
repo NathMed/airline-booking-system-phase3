@@ -1,41 +1,188 @@
 <script setup>
-import { ref, inject } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { getAllAirports, searchFlights } from '../api.js' // Adjust path if your api file is located in '../api.js'
+import { useGlobalStore } from '../stores/global.js' // Adjust path if your store is located in '@/stores/global'
 
-const goNav = inject('goNav')
+const router = useRouter()
+const route = useRoute()
+const globalStore = useGlobalStore()
 
-const fromVal = ref('MNL')
-const toVal   = ref('CEB')
-const sfDate  = ref('')
-const pax     = ref('2 Adults')
+// State Management
+const airports = ref([])
+const isSearching = ref(false)
+const hasSearched = ref(false)
+const errorMessage = ref('')
 
-const airportLabels = {
-  MNL: 'Manila (MNL)', CEB: 'Cebu (CEB)', DVO: 'Davao (DVO)',
-  SIN: 'Singapore (SIN)', TYO: 'Tokyo (TYO)', DXB: 'Dubai (DXB)',
-  CDG: 'Paris (CDG)', NRT: 'Tokyo (NRT)', MLE: 'Maldives (MLE)',
-  GVA: 'Geneva (GVA)', JFK: 'New York (JFK)'
+// Form Inputs (Synchronized with tripType tokens)
+const tripType = ref('oneway') // 'oneway' or 'roundtrip'
+const fromVal  = ref('')       // Stores Origin Airport Database _id
+const toVal    = ref('')       // Stores Destination Airport Database _id
+const sfDate   = ref('')       // Target Departure Date String
+const pax      = ref('2 Adults')
+
+// Flight Result Buckets & Leg Trackers
+const flightResultsPerSegment = ref([])
+const selectedFlightIds = ref([])
+
+// Authentication Status State Provider Check
+const isAuthenticated = computed(() => !!globalStore.user.token)
+
+// Dynamic Luxury Banner Labels Computed Properties
+const fromLabel = computed(() => {
+  const origin = airports.value.find(a => a._id === fromVal.value)
+  return origin ? `${origin.city} (${origin.iataCode})` : 'Select Origin'
+})
+
+const toLabel = computed(() => {
+  const dest = airports.value.find(a => a._id === toVal.value)
+  return dest ? `${dest.city} (${dest.iataCode})` : 'Select Destination'
+})
+
+// Check if all active flight segments have a valid selection choice configured
+const isSelectionComplete = computed(() => {
+  const expectedLegs = tripType.value === 'roundtrip' ? 2 : 1
+  return selectedFlightIds.value.length === expectedLegs && 
+         selectedFlightIds.value.every(id => id !== null && id !== undefined)
+})
+
+// Initialize Airport Dropdowns and handle Homepage URL Search Forwarder Queries
+onMounted(async () => {
+  try {
+    const res = await getAllAirports()
+    airports.value = res.result || res
+
+    // 1. Check if user arrived via Homepage forwarder query arguments
+    if (route.query.from && route.query.to && route.query.date) {
+      fromVal.value = route.query.from
+      toVal.value = route.query.to
+      sfDate.value = route.query.date
+      if (route.query.type) tripType.value = route.query.type
+      
+      // Auto-trigger network search instantly
+      handleSearch()
+    } else if (airports.value.length > 0) {
+      // 2. Set default fallbacks if entering page from standard navigation links
+      fromVal.value = airports.value[0]._id
+      if (airports.value[1]) toVal.value = airports.value[1]._id
+    }
+  } catch (err) {
+    console.error('Failed to initialize airport resources:', err)
+  }
+})
+
+// Reset configuration states whenever user alters the flight trip category
+watch(tripType, () => {
+  hasSearched.value = false
+  errorMessage.value = ''
+  selectedFlightIds.value = []
+  flightResultsPerSegment.value = []
+})
+
+// Core Multi-Segment Query Execution Layer
+async function handleSearch() {
+  if (!fromVal.value || !toVal.value || !sfDate.value) {
+    errorMessage.value = 'Please select an origin, destination, and departure date.'
+    return
+  }
+
+  errorMessage.value = ''
+  hasSearched.value = true
+  isSearching.value = true
+  flightResultsPerSegment.value = []
+  selectedFlightIds.value = []
+
+  // Construct segments payload dynamically mapping to layout options
+  const segments = []
+  const adjustedDate = sfDate.value + 'T12:00:00+08:00'
+
+  // Always append Outbound Segment Leg
+  segments.push({ origin: fromVal.value, destination: toVal.value, date: adjustedDate })
+
+  // Append Return Segment Leg if tracking a Round-Trip route sequence
+  if (tripType.value === 'roundtrip') {
+    segments.push({ origin: toVal.value, destination: fromVal.value, date: adjustedDate })
+  }
+
+  try {
+    const searchPromises = segments.map(seg => searchFlights(seg.origin, seg.destination, seg.date))
+    const responses = await Promise.allSettled(searchPromises)
+    
+    responses.forEach((res, index) => {
+      if (res.status === 'fulfilled') {
+        flightResultsPerSegment.value[index] = res.value.flights || []
+      } else {
+        flightResultsPerSegment.value[index] = []
+      }
+    })
+    
+    // Preset array tracking size slots based on configured active legs
+    selectedFlightIds.value = new Array(segments.length).fill(null)
+  } catch (err) {
+    console.error(err)
+    errorMessage.value = 'An error occurred while compiling available flight routes.'
+  } finally {
+    isSearching.value = false
+  }
 }
 
-const fromLabel = ref('Manila (MNL)')
-const toLabel   = ref('Cebu (CEB)')
+// Select specific flight entry for specific route leg index slot
+function selectFlight(segmentIndex, flightId) {
+  selectedFlightIds.value[segmentIndex] = flightId
 
-function updateBanner() {
-  fromLabel.value = airportLabels[fromVal.value] || fromVal.value
-  toLabel.value   = airportLabels[toVal.value]   || toVal.value
+  // UX Shortcut: If One-Way and selection made, directly forward to checkout checkout view
+  if (tripType.value === 'oneway') {
+    proceedToCheckout()
+  }
 }
 
-const activeChipOut = ref(4)
-const activeChipRet = ref(4)
+// Single target function handling Auth Checkouts vs Guest Checkouts redirection via Vue Router
+function proceedToCheckout() {
+  if (!isSelectionComplete.value) return
+  
+  const bundledFlightIds = selectedFlightIds.value.join(',')
+  
+  if (isAuthenticated.value) {
+    router.push({ name: 'Checkout', params: { flightId: bundledFlightIds } })
+  } else {
+    router.push({ name: 'GuestCheckout', params: { flightId: bundledFlightIds } })
+  }
+}
 
-function selectFlight(card) {
-  const siblings = card.parentElement.querySelectorAll('.flight-card')
-  siblings.forEach(c => c.classList.remove('selected'))
-  card.classList.add('selected')
+// UI Formatting Helper Utilities
+function formatTime(dt) {
+  if (!dt) return '—'
+  return new Date(dt).toLocaleString('en-PH', {
+    timeZone: 'Asia/Manila',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+function formatDateLabel(dt) {
+  if (!dt) return ''
+  return new Date(dt).toLocaleDateString('en-PH', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  })
+}
+
+function calcTravelTime(departure, arrival) {
+  if (!departure || !arrival) return ''
+  const diff = new Date(arrival) - new Date(departure)
+  if (diff <= 0) return ''
+  const hours = Math.floor(diff / (1000 * 60 * 60))
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+  return `${hours}h ${minutes}m`
 }
 </script>
 
 <template>
   <div class="page active">
     <div class="inner-page">
+      
       <div class="inner-hero">
         <div class="container text-center">
           <p class="hero-eyebrow">Flight 606 · Luxury Redefined</p>
@@ -48,45 +195,47 @@ function selectFlight(card) {
         <div class="container">
           <nav class="theme-breadcrumb" aria-label="breadcrumb">
             <ol class="breadcrumb mb-0">
-              <li class="breadcrumb-item"><a href="#" @click.prevent="goNav('home')">Home</a></li>
+              <li class="breadcrumb-item">
+                <RouterLink to="/">Home</RouterLink>
+              </li>
               <li class="breadcrumb-item active" aria-current="page">Flights</li>
             </ol>
           </nav>
 
-          <!-- Search bar -->
           <div class="sf-search-bar">
             <div class="d-flex gap-4 mb-3 flex-wrap">
-              <label class="r-lbl"><input type="radio" name="sf-trip" value="one" checked><span>One way</span></label>
-              <label class="r-lbl"><input type="radio" name="sf-trip" value="round"><span>Round trip</span></label>
-              <label class="r-lbl"><input type="radio" name="sf-trip" value="multi"><span>Multi-city</span></label>
+              <label class="r-lbl">
+                <input type="radio" name="sf-trip" value="oneway" v-model="tripType">
+                <span>One way</span>
+              </label>
+              <label class="r-lbl">
+                <input type="radio" name="sf-trip" value="roundtrip" v-model="tripType">
+                <span>Round trip</span>
+              </label>
             </div>
+            
             <div class="sf-bar-row">
               <div>
                 <div class="sf-label">From</div>
-                <select class="sf-select" v-model="fromVal">
-                  <option value="MNL">Manila (MNL)</option>
-                  <option value="CEB">Cebu (CEB)</option>
-                  <option value="DVO">Davao (DVO)</option>
-                  <option value="SIN">Singapore (SIN)</option>
-                  <option value="TYO">Tokyo (TYO)</option>
-                  <option value="DXB">Dubai (DXB)</option>
+                <select class="sf-select" v-model="fromVal" required>
+                  <option value="" disabled>Select Origin</option>
+                  <option v-for="airport in airports" :key="airport._id" :value="airport._id">
+                    {{ airport.city }} ({{ airport.iataCode }})
+                  </option>
                 </select>
               </div>
               <div>
                 <div class="sf-label">To</div>
-                <select class="sf-select" v-model="toVal">
-                  <option value="CDG">Paris (CDG)</option>
-                  <option value="NRT">Tokyo (NRT)</option>
-                  <option value="MLE">Maldives (MLE)</option>
-                  <option value="GVA">Geneva (GVA)</option>
-                  <option value="JFK">New York (JFK)</option>
-                  <option value="DXB">Dubai (DXB)</option>
-                  <option value="CEB">Cebu (CEB)</option>
+                <select class="sf-select" v-model="toVal" required>
+                  <option value="" disabled>Select Destination</option>
+                  <option v-for="airport in airports" :key="airport._id" :value="airport._id">
+                    {{ airport.city }} ({{ airport.iataCode }})
+                  </option>
                 </select>
               </div>
               <div>
                 <div class="sf-label">Departure Date</div>
-                <input type="date" class="sf-input" v-model="sfDate">
+                <input type="date" class="sf-input" v-model="sfDate" :min="new Date().toISOString().split('T')[0]" required>
               </div>
               <div>
                 <div class="sf-label">Passengers</div>
@@ -94,115 +243,131 @@ function selectFlight(card) {
                   <option>1 Adult</option>
                   <option>2 Adults</option>
                   <option>3 Adults</option>
-                  <option>2 Adults, 1 Child</option>
                 </select>
               </div>
               <div>
-                <button class="sf-search-btn" @click="updateBanner">Search</button>
+                <button class="sf-search-btn" @click="handleSearch" :disabled="isSearching">
+                  <span v-if="isSearching" class="spinner-border spinner-border-sm me-1"></span> Search
+                </button>
               </div>
             </div>
           </div>
 
-          <!-- Outbound -->
-          <div class="results-banner gold-banner">
-            ✈ Select departure flight from <strong>{{ fromLabel }}</strong> to <strong>{{ toLabel }}</strong>
-          </div>
-          <div class="date-scroll-row">
-            <span class="date-arrow">‹</span>
-            <div class="date-chips">
-              <span v-for="(chip, i) in ['Mon 13 May','Tue 14 May','Wed 15 May','Thu 16 May','Fri 17 May','Sat 18 May','Sun 19 May']"
-                :key="i" class="date-chip" :class="{ active: i === activeChipOut }" @click="activeChipOut = i">{{ chip }}</span>
-            </div>
-            <span class="date-arrow">›</span>
-          </div>
+          <div v-if="errorMessage" class="alert alert-danger my-3">{{ errorMessage }}</div>
 
-          <div class="flight-card selected" @click="$event.currentTarget.parentElement.querySelectorAll('.flight-card').forEach(c => c.classList.remove('selected')); $event.currentTarget.classList.add('selected')">
-            <div class="fc-endpoint">
-              <div class="fc-time">08:10</div>
-              <div class="fc-airport">{{ fromLabel.split('(')[0].trim() }} · {{ fromVal }}</div>
-              <div class="fc-date">Fri, 17 May 2025</div>
+          <div v-if="hasSearched && !isSearching">
+            
+            <div class="results-banner gold-banner">
+              ✈ Select departure flight from <strong>{{ fromLabel }}</strong> to <strong>{{ toLabel }}</strong>
             </div>
-            <div class="fc-mid">
-              <div class="fc-duration">1h 15m</div>
-              <div class="fc-line"><span class="fc-plane-icon"><i class="bi bi-airplane-fill"></i></span></div>
-              <div class="fc-stops">Direct</div>
+            
+            <div class="date-scroll-row">
+              <span class="date-arrow">‹</span>
+              <div class="date-chips">
+                <span class="date-chip active">{{ formatDateLabel(sfDate) || 'Selected Date' }}</span>
+              </div>
+              <span class="date-arrow">›</span>
             </div>
-            <div class="fc-endpoint">
-              <div class="fc-time">09:25</div>
-              <div class="fc-airport">{{ toLabel.split('(')[0].trim() }} · {{ toVal }}</div>
-              <div class="fc-date">Fri, 17 May 2025</div>
-            </div>
-            <div class="fc-price-box">
-              <span class="fc-badge">Cheapest Price</span>
-              <div class="fc-price-amt">₱2,490</div>
-              <div class="fc-price-note">operated by Flight606</div>
-              <button class="fc-select-btn" @click.stop="goNav('book-flight')">Select →</button>
-            </div>
-          </div>
 
-          <div class="flight-card" @click="$event.currentTarget.parentElement.querySelectorAll('.flight-card').forEach(c => c.classList.remove('selected')); $event.currentTarget.classList.add('selected')">
-            <div class="fc-endpoint">
-              <div class="fc-time">14:30</div>
-              <div class="fc-airport">{{ fromLabel.split('(')[0].trim() }} · {{ fromVal }}</div>
-              <div class="fc-date">Fri, 17 May 2025</div>
+            <div v-if="!flightResultsPerSegment[0] || flightResultsPerSegment[0].length === 0" class="alert alert-warning text-center my-3">
+              No flights found for this route segment on the specified date.
             </div>
-            <div class="fc-mid">
-              <div class="fc-duration">1h 20m</div>
-              <div class="fc-line"><span class="fc-plane-icon"><i class="bi bi-airplane-fill"></i></span></div>
-              <div class="fc-stops">Direct</div>
-            </div>
-            <div class="fc-endpoint">
-              <div class="fc-time">15:50</div>
-              <div class="fc-airport">{{ toLabel.split('(')[0].trim() }} · {{ toVal }}</div>
-              <div class="fc-date">Fri, 17 May 2025</div>
-            </div>
-            <div class="fc-price-box">
-              <div class="fc-price-amt" style="color:#e05252;">₱3,800</div>
-              <div class="fc-price-note">operated by AirAsia</div>
-              <button class="fc-select-btn" @click.stop="goNav('book-flight')">Select →</button>
-            </div>
-          </div>
 
-          <div class="view-more-wrap"><button class="view-more-btn">View more ↓</button></div>
+            <div 
+              v-for="flight in flightResultsPerSegment[0]" 
+              :key="flight._id"
+              class="flight-card" 
+              :class="{ selected: selectedFlightIds[0] === flight._id }"
+              @click="selectFlight(0, flight._id)"
+            >
+              <div class="fc-endpoint">
+                <div class="fc-time">{{ formatTime(flight.departureTime) }}</div>
+                <div class="fc-airport">{{ fromLabel.split('(')[0].trim() }} · {{ flight.originAirportId?.iataCode || 'DEP' }}</div>
+                <div class="fc-date">{{ formatDateLabel(flight.departureTime) }}</div>
+              </div>
+              <div class="fc-mid">
+                <div class="fc-duration">{{ calcTravelTime(flight.departureTime, flight.arrivalTime) }}</div>
+                <div class="fc-line"><span class="fc-plane-icon"><i class="bi bi-airplane-fill"></i></span></div>
+                <div class="fc-stops">Direct</div>
+              </div>
+              <div class="fc-endpoint">
+                <div class="fc-time">{{ formatTime(flight.arrivalTime) }}</div>
+                <div class="fc-airport">{{ toLabel.split('(')[0].trim() }} · {{ flight.destinationAirportId?.iataCode || 'ARR' }}</div>
+                <div class="fc-date">{{ formatDateLabel(flight.arrivalTime) }}</div>
+              </div>
+              <div class="fc-price-box">
+                <span class="fc-badge">Economy Class</span>
+                <div class="fc-price-amt">₱{{ flight.basePrice?.toLocaleString() }}</div>
+                <div class="fc-price-note">Flight {{ flight.flightNumber }}</div>
+                <button class="fc-select-btn" @click.stop="selectFlight(0, flight._id)">
+                  {{ selectedFlightIds[0] === flight._id ? 'Selected ✓' : 'Select →' }}
+                </button>
+              </div>
+            </div>
 
-          <!-- Return -->
-          <div class="results-banner gold-banner-dim mt-5">
-            ✈ Select return flight from <strong>{{ toLabel }}</strong> to <strong>{{ fromLabel }}</strong>
-          </div>
-          <div class="date-scroll-row">
-            <span class="date-arrow">‹</span>
-            <div class="date-chips">
-              <span v-for="(chip, i) in ['Mon 27 May','Tue 28 May','Wed 29 May','Thu 30 May','Fri 31 May','Sat 1 Jun']"
-                :key="i" class="date-chip" :class="{ active: i === activeChipRet }" @click="activeChipRet = i">{{ chip }}</span>
-            </div>
-            <span class="date-arrow">›</span>
-          </div>
 
-          <div class="flight-card selected">
-            <div class="fc-endpoint">
-              <div class="fc-time">10:00</div>
-              <div class="fc-airport">{{ toLabel.split('(')[0].trim() }} · {{ toVal }}</div>
-              <div class="fc-date">Fri, 31 May 2025</div>
-            </div>
-            <div class="fc-mid">
-              <div class="fc-duration">1h 15m</div>
-              <div class="fc-line"><span class="fc-plane-icon"><i class="bi bi-airplane-fill"></i></span></div>
-              <div class="fc-stops">Direct</div>
-            </div>
-            <div class="fc-endpoint">
-              <div class="fc-time">11:15</div>
-              <div class="fc-airport">{{ fromLabel.split('(')[0].trim() }} · {{ fromVal }}</div>
-              <div class="fc-date">Fri, 31 May 2025</div>
-            </div>
-            <div class="fc-price-box">
-              <span class="fc-badge">Cheapest Price</span>
-              <div class="fc-price-amt">₱2,490</div>
-              <div class="fc-price-note">operated by Flight606</div>
-              <button class="fc-select-btn" @click.stop="goNav('book-flight')">Select →</button>
-            </div>
-          </div>
+            <div v-if="tripType === 'roundtrip'" class="mt-5">
+              <div class="results-banner gold-banner-dim">
+                🔄 Select return flight from <strong>{{ toLabel }}</strong> to <strong>{{ fromLabel }}</strong>
+              </div>
 
-          <div class="view-more-wrap mb-5"><button class="view-more-btn">View more ↓</button></div>
+              <div v-if="!flightResultsPerSegment[1] || flightResultsPerSegment[1].length === 0" class="alert alert-warning text-center my-3">
+                No matching return flights found for this segment layout on the specified date.
+              </div>
+
+              <div 
+                v-for="flight in flightResultsPerSegment[1]" 
+                :key="flight._id"
+                class="flight-card" 
+                :class="{ selected: selectedFlightIds[1] === flight._id }"
+                @click="selectFlight(1, flight._id)"
+              >
+                <div class="fc-endpoint">
+                  <div class="fc-time">{{ formatTime(flight.departureTime) }}</div>
+                  <div class="fc-airport">{{ toLabel.split('(')[0].trim() }} · {{ flight.originAirportId?.iataCode || 'ARR' }}</div>
+                  <div class="fc-date">{{ formatDateLabel(flight.departureTime) }}</div>
+                </div>
+                <div class="fc-mid">
+                  <div class="fc-duration">{{ calcTravelTime(flight.departureTime, flight.arrivalTime) }}</div>
+                  <div class="fc-line"><span class="fc-plane-icon"><i class="bi bi-airplane-fill"></i></span></div>
+                  <div class="fc-stops">Direct</div>
+                </div>
+                <div class="fc-endpoint">
+                  <div class="fc-time">{{ formatTime(flight.arrivalTime) }}</div>
+                  <div class="fc-airport">{{ fromLabel.split('(')[0].trim() }} · {{ flight.destinationAirportId?.iataCode || 'DEP' }}</div>
+                  <div class="fc-date">{{ formatDateLabel(flight.arrivalTime) }}</div>
+                </div>
+                <div class="fc-price-box">
+                  <span class="fc-badge">Economy Class</span>
+                  <div class="fc-price-amt">₱{{ flight.basePrice?.toLocaleString() }}</div>
+                  <div class="fc-price-note">Flight {{ flight.flightNumber }}</div>
+                  <button class="fc-select-btn" @click.stop="selectFlight(1, flight._id)">
+                    {{ selectedFlightIds[1] === flight._id ? 'Selected ✓' : 'Select →' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="tripType === 'roundtrip'" class="card shadow-lg my-5 border-0 border-top border-warning border-3 bg-dark text-white">
+              <div class="card-body d-flex justify-content-between align-items-center py-3">
+                <div>
+                  <span class="fw-bold gold-link">Selection Progress:</span> 
+                  <span class="ms-2 badge bg-warning text-dark">
+                    {{ selectedFlightIds.filter(id => id !== null).length }} / 2 Configured
+                  </span>
+                </div>
+                <button 
+                  class="btn-gold-full py-2 px-5 m-0 w-auto" 
+                  :disabled="!isSelectionComplete" 
+                  @click="proceedToCheckout"
+                >
+                  Confirm Booking Sequence <i class="bi bi-arrow-right ms-2"></i>
+                </button>
+              </div>
+            </div>
+
+          </div>
+          <div class="view-more-wrap mb-5" v-if="hasSearched && !isSearching"><button class="view-more-btn">View more ↓</button></div>
         </div>
       </div>
 
@@ -216,6 +381,7 @@ function selectFlight(card) {
           </div>
         </div>
       </footer>
+
     </div>
   </div>
 </template>

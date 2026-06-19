@@ -1,5 +1,9 @@
 <script setup>
 import { ref, inject } from 'vue'
+import { loginUser } from '../api.js' 
+import { useGlobalStore } from '../stores/global.js'
+
+const globalStore = useGlobalStore()
 
 const showPage    = inject('showPage')
 const setLoggedIn = inject('setLoggedIn')
@@ -10,17 +14,33 @@ const showPass = ref(false)
 const emailErr = ref(false)
 const loginErr = ref(false)
 
-function doLogin() {
+async function doLogin() {
   emailErr.value = false
   loginErr.value = false
 
   if (!email.value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
-    emailErr.value = true; return
+    emailErr.value = true
+    return
   }
-  if (email.value === 'demo@flight606.com' && password.value === 'password123') {
-    setLoggedIn(true)
-    showPage('home')
-  } else {
+
+  try {
+    const res = await loginUser({ 
+      email: email.value, 
+      password: password.value 
+    })
+
+    // FIXED: Added res.access to match your backend payload key seen in image_d1d37f.png
+    const token = res.access || res.token || res.result?.token
+
+    if (token) {
+      await globalStore.getUserDetails(token)
+      setLoggedIn(true)
+      showPage('home')
+    } else {
+      loginErr.value = true
+    }
+  } catch (error) {
+    console.error('Authentication error:', error)
     loginErr.value = true
   }
 }
