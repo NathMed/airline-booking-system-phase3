@@ -21,7 +21,7 @@ const goNav = inject('goNav')
         <div class="row g-3">
           <div class="col-6 col-lg-3">
             <div class="dest-card" @click="goNav('search-flights')">
-              <img src="https://images.unsplash.com/photo-1431274172761-fca41d930114?w=600&q=70" alt="Paris">
+              <img src="" alt="Paris">
               <div class="dest-overlay">
                 <span class="dest-tag">The City of Lights</span>
                 <span class="dest-name">Paris</span>
@@ -30,7 +30,7 @@ const goNav = inject('goNav')
           </div>
           <div class="col-6 col-lg-3">
             <div class="dest-card" @click="goNav('search-flights')">
-              <img src="https://images.unsplash.com/photo-1618238832760-7e4129ef4a43?w=600&q=70" alt="Maldives">
+              <img src="">
               <div class="dest-overlay">
                 <span class="dest-tag">Ocean Sanctuary</span>
                 <span class="dest-name">Maldives</span>
@@ -39,7 +39,7 @@ const goNav = inject('goNav')
           </div>
           <div class="col-6 col-lg-3">
             <div class="dest-card" @click="goNav('search-flights')">
-              <img src="https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=600&q=70" alt="Tokyo">
+              <img src="" alt="Tokyo">
               <div class="dest-overlay">
                 <span class="dest-tag">Neon Meets Tradition</span>
                 <span class="dest-name">Tokyo</span>

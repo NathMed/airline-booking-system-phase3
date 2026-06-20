@@ -3,9 +3,9 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import BookingWidget from './BookingWidget.vue'
 
 const slides = [
-  'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1800&q=80',
-  'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1800&q=80',
-  'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1800&q=80',
+  '',
+  '',
+  '',
 ]
 
 const current = ref(0)
