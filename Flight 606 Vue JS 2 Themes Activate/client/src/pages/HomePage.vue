@@ -1,0 +1,169 @@
+<script setup>
+import { inject } from 'vue'
+import HeroSlider from '../components/HeroSlider.vue'
+
+const goNav = inject('goNav')
+</script>
+
+<template>
+  <div class="page active">
+
+    <HeroSlider />
+
+    <!-- Tour Plan -->
+    <section id="tours" class="section-pad bg-dark-base">
+      <div class="container">
+        <p class="section-eyebrow">Curated Routes</p>
+        <div class="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-5">
+          <h2 class="section-title">Tour <em>Plan</em></h2>
+          <a href="#" class="view-all-link" @click.prevent="goNav('search-flights')">View All Routes &nbsp;→</a>
+        </div>
+        <div class="row g-3">
+          <div class="col-6 col-lg-3">
+            <div class="dest-card" @click="goNav('search-flights')">
+              <img src="" alt="Paris">
+              <div class="dest-overlay">
+                <span class="dest-tag">The City of Lights</span>
+                <span class="dest-name">Paris</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="dest-card" @click="goNav('search-flights')">
+              <img src="">
+              <div class="dest-overlay">
+                <span class="dest-tag">Ocean Sanctuary</span>
+                <span class="dest-name">Maldives</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="dest-card" @click="goNav('search-flights')">
+              <img src="" alt="Tokyo">
+              <div class="dest-overlay">
+                <span class="dest-tag">Neon Meets Tradition</span>
+                <span class="dest-name">Tokyo</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="dest-card" @click="goNav('search-flights')">
+              <img src="https://images.unsplash.com/photo-1598258710957-db8614c2881e?w=600&q=70" alt="Manila">
+              <div class="dest-overlay">
+                <span class="dest-tag">It's More Fun Here</span>
+                <span class="dest-name">Manila</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- About -->
+    <section id="about" class="section-pad about-section">
+      <div class="container">
+        <div class="row align-items-center g-5">
+          <div class="col-lg-6">
+            <p class="section-eyebrow">Our Story</p>
+            <h2 class="section-title">Time is your most<br>precious <em>commodity.</em></h2>
+            <p class="body-text mt-4">We believe the journey should be as remarkable as the destination. Flight606 was founded on a singular principle: to return the romance, privacy, and absolute comfort to transcontinental travel.</p>
+            <p class="body-text mt-3">From private terminal departures to bespoke culinary programs crafted by Michelin-starred chefs — every detail is engineered for those who demand nothing less than perfection.</p>
+            <a href="#" class="btn-outline-gold mt-4 d-inline-block">Discover the Experience</a>
+          </div>
+          <div class="col-lg-6">
+            <div class="about-visual"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="section-pad testi-section">
+      <div class="container">
+        <p class="section-eyebrow text-center">Distinguished Guests</p>
+        <h2 class="section-title text-center mb-5">Whispers of <em>Excellence</em></h2>
+        <div class="row g-4">
+          <div class="col-md-4">
+            <div class="testi-card">
+              <div class="testi-stars">★★★★★</div>
+              <p class="testi-quote">"The only airline where I genuinely look forward to a 12-hour flight. The private suite and dining service rival the best hotels in the world."</p>
+              <p class="testi-who">— Eleanor R., London</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="testi-card">
+              <div class="testi-stars">★★★★★</div>
+              <p class="testi-quote">"Flight606 has completely redefined business travel for me. Quiet, understated, and impeccably serviced. A masterclass in hospitality at altitude."</p>
+              <p class="testi-who">— Marcus T., New York</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="testi-card">
+              <div class="testi-stars">★★★★★</div>
+              <p class="testi-quote">"From the chauffeur service to the arrivals lounge, it is a seamless cocoon of luxury. I simply refuse to fly any other way now."</p>
+              <p class="testi-who">— Sophia C., Geneva</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <div class="container">
+        <div class="row g-4 mb-5">
+          <div class="col-6 col-md-3 col-lg">
+            <p class="footer-heading">Other Offerings</p>
+            <ul class="footer-links">
+              <li><a href="#">PHplus</a></li>
+              <li><a href="#">Temptations</a></li>
+              <li><a href="#">More</a></li>
+            </ul>
+          </div>
+          <div class="col-6 col-md-3 col-lg">
+            <p class="footer-heading">About Us</p>
+            <ul class="footer-links">
+              <li><a href="#">Corporate Governance</a></li>
+              <li><a href="#">Leadership</a></li>
+              <li><a href="#">Join Us</a></li>
+            </ul>
+          </div>
+          <div class="col-6 col-md-3 col-lg">
+            <p class="footer-heading">Corporate Travel</p>
+            <ul class="footer-links">
+              <li><a href="#">PHcorporate</a></li>
+              <li><a href="#">PHcorporate SME</a></li>
+            </ul>
+          </div>
+          <div class="col-6 col-md-3 col-lg">
+            <p class="footer-heading">Help</p>
+            <ul class="footer-links">
+              <li><a href="#">FAQ</a></li>
+              <li><a href="#">Contact</a></li>
+            </ul>
+          </div>
+          <div class="col-lg-3">
+            <p class="footer-heading">Subscribe to our offers</p>
+            <div class="sub-wrap">
+              <input type="email" class="sub-input" placeholder="your@email.com">
+              <button class="sub-btn">Subscribe</button>
+            </div>
+            <p class="footer-connect-label">Connect With Us</p>
+            <div class="soc-row">
+              <a href="#" class="soc-i" aria-label="Twitter/X"><i class="bi bi-twitter-x"></i></a>
+              <a href="#" class="soc-i" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
+              <a href="#" class="soc-i" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
+              <a href="#" class="soc-i" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
+            </div>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <div class="footer-legal">
+            <a href="#">Legal</a><a href="#">Privacy</a><a href="#">Accessibility</a><a href="#">Terms & Conditions</a>
+          </div>
+          <span class="footer-copy">© Batch 606</span>
+        </div>
+      </div>
+    </footer>
+  </div>
+</template>
