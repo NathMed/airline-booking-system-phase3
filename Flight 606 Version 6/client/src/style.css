@@ -209,47 +209,70 @@ h1, h2, h3, h4, h5, h6 {
 [data-theme="light"] .theme-toggle .icon-light { opacity: 1; transform: rotate(0deg) scale(1); }
 
 /* ════════════════════════════════════════════════════
-   NAVBAR
+   NAVBAR MASTER SYSTEM (LIGHT/DARK & ALIGNMENT FIXED)
 ════════════════════════════════════════════════════ */
 #mainNav {
   background: transparent;
-  border-bottom: 1px solid transparent;
+  border-bottom: none; 
   padding: 0;
   height: 70px;
-  transition: background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, backdrop-filter 0.4s ease;
-  backdrop-filter: blur(0px);
+  display: flex;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1030;
+  transition: background 0.5s cubic-bezier(0.16, 1, 0.3, 1), height 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s ease;
 }
 
+/* ── Scrolled Glass State (Both Themes) ────────────────── */
 #mainNav.scrolled {
-  background: var(--nav-scrolled-bg);
-  border-bottom-color: var(--nav-border);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  box-shadow: 0 4px 40px var(--glass-shadow);
+  height: 65px;
+  backdrop-filter: blur(30px) saturate(145%);
+  -webkit-backdrop-filter: blur(30px) saturate(145%);
+}
+
+/* Dark theme scrolled background */
+[data-theme="dark"] #mainNav.scrolled {
+  background: rgba(10, 11, 14, 0.88) !important;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Light theme scrolled background -> Turns into solid bright white glass */
+[data-theme="light"] #mainNav.scrolled {
+  background: rgba(255, 255, 255, 0.9) !important; 
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
 .nav-inner {
+  width: 100%;
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 48px;
-  height: 70px;
+  height: 100%;
   display: flex;
   align-items: center;
 }
 
-/* ── Logo ─────────────────────────────────────────── */
+/* ── Brand Logo ────────────────────────────── */
 .nav-logo {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   font-family: var(--font-sans);
   font-size: 1.25rem;
   font-weight: 900;
   letter-spacing: 0.06em;
-  color: var(--text) !important;
+  color: #ffffff !important; /* Always white on top of the hero image */
   text-decoration: none !important;
   white-space: nowrap;
-  transition: color 0.35s ease;
+  transition: color 0.3s ease;
+}
+
+/* Turn logo dark ONLY when scrolled in light mode */
+[data-theme="light"] #mainNav.scrolled .nav-logo {
+  color: #111111 !important;
 }
 
 .logo-mark {
@@ -263,43 +286,56 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 1rem;
   color: var(--ink-on-gold);
   flex-shrink: 0;
-  transition: background 0.35s ease, color 0.35s ease;
 }
 
-/* ── Nav Links ─────────────────────────────────────── */
+/* ── Navigation Links (Transparent Base) ──────────────────── */
 .navbar-nav .nav-link {
   font-family: var(--font-sans);
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--muted) !important;
+  color: rgba(255, 255, 255, 0.65) !important; /* Bright crisp white while over the image */
   text-decoration: none;
-  padding: 8px 12px !important;
-  border-bottom: 2px solid transparent;
-  transition: color 0.2s ease, border-color 0.2s ease;
+  padding: 8px 14px !important;
+  position: relative;
+  transition: color 0.25s ease;
 }
 
-.navbar-nav .nav-link:hover  { color: var(--text) !important; }
-.navbar-nav .nav-link.active { color: var(--gold) !important; border-bottom-color: var(--gold); }
+.navbar-nav .nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) scaleX(0);
+  width: 14px;
+  height: 2px;
+  background-color: var(--gold);
+  border-radius: 1px;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
 
-/* ── Nav CTA Buttons ──────────────────────────────── */
+.navbar-nav .nav-link:hover { color: #ffffff !important; }
+.navbar-nav .nav-link:hover::after { transform: translateX(-50%) scaleX(0.6); background-color: #ffffff; }
+.navbar-nav .nav-link.active { color: var(--gold) !important; }
+.navbar-nav .nav-link.active::after { transform: translateX(-50%) scaleX(1); background-color: var(--gold); }
+
+/* ── CTA Action Buttons ────────────────── */
 .btn-ghost {
   font-family: var(--font-sans);
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--gold);
+  color: #ffffff !important; /* White text over the hero image */
   text-decoration: none;
-  padding: 8px 18px;
-  border: 1px solid var(--gold);
-  border-radius: 2px;
-  transition: background 0.2s ease, color 0.2s ease;
+  padding: 10px 22px;
+  background: rgba(255, 255, 255, 0.08); 
+  border-radius: 30px; 
+  transition: all 0.3s ease;
   white-space: nowrap;
 }
-
-.btn-ghost:hover { background: var(--gold); color: var(--ink-on-gold); }
+.btn-ghost:hover { background: rgba(255, 255, 255, 0.18); }
 
 .btn-gold {
   font-family: var(--font-sans);
@@ -307,37 +343,99 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--ink-on-gold);
+  color: var(--ink-on-gold) !important;
   text-decoration: none;
   background: var(--gold);
-  padding: 9px 22px;
-  border-radius: 2px;
+  padding: 11px 26px;
+  border-radius: 30px;
   border: none;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
-  white-space: nowrap;
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
+  transition: all 0.3s ease;
   display: inline-block;
 }
+.btn-gold:hover { background: var(--gold-light); transform: translateY(-1px); }
 
-.btn-gold:hover { background: var(--gold-light); color: var(--ink-on-gold); }
+.theme-toggle, .navbar-toggler {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: #ffffff;
+  padding: 10px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.toggler-icon { display: block; width: 18px; height: 1.5px; background: #ffffff; margin: 4px 0; }
 
-/* ── Hamburger ─────────────────────────────────────── */
-.navbar-toggler {
-  border: 1px solid var(--border);
-  padding: 6px 10px;
-  background: transparent;
+/* ── Desktop Center-Alignment Rules ────────────────────────── */
+@media (min-width: 992px) {
+  .nav-inner {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+
+  #mainNav .navbar-collapse {
+    display: flex !important;
+    width: 100% !important;
+  }
+
+  #mainNav .navbar-nav {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    margin: 0 !important;
+    width: max-content !important;
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 4px !important;
+    z-index: 1050;
+  }
+
+  #mainNav .nav-actions {
+    margin-left: auto !important;
+    position: relative !important;
+    z-index: 1060;
+  }
 }
 
-.navbar-toggler:focus { box-shadow: none; }
+/* ===================================================
+   LIGHT THEME SMART ADAPTATION
+   (Only changes text colors AFTER scrolling down)
+   =================================================== */
 
-.toggler-icon {
-  display: block;
-  width: 22px;
-  height: 2px;
-  background: var(--text);
-  margin: 4px 0;
-  transition: background 0.3s ease;
+/* 1. Turns link text dark gray ONLY when scrolled over the white glass background */
+[data-theme="light"] #mainNav.scrolled .navbar-nav .nav-link {
+  color: rgba(15, 23, 42, 0.65) !important; 
 }
+[data-theme="light"] #mainNav.scrolled .navbar-nav .nav-link:hover {
+  color: #111111 !important; 
+}
+[data-theme="light"] #mainNav.scrolled .navbar-nav .nav-link:hover::after {
+  background-color: #111111;
+}
+[data-theme="light"] #mainNav.scrolled .navbar-nav .nav-link.active {
+  color: var(--gold) !important; 
+}
+
+/* 2. Turns login button and icons dark ONLY when scrolled over white glass */
+[data-theme="light"] #mainNav.scrolled .btn-ghost {
+  color: #111111 !important;
+  background: rgba(0, 0, 0, 0.05);
+}
+[data-theme="light"] #mainNav.scrolled .btn-ghost:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+[data-theme="light"] #mainNav.scrolled .theme-toggle,
+[data-theme="light"] #mainNav.scrolled .navbar-toggler {
+  background: rgba(0, 0, 0, 0.05);
+  color: #111111 !important;
+}
+[data-theme="light"] #mainNav.scrolled .toggler-icon {
+  background: #111111;
+}
+
 
 /* ── Profile Dropdown ──────────────────────────────── */
 .profile-trigger {
@@ -437,15 +535,17 @@ h1, h2, h3, h4, h5, h6 {
 .theme-breadcrumb .breadcrumb-item.active  { color: var(--gold); font-weight: 600; }
 .theme-breadcrumb .breadcrumb-item + .breadcrumb-item::before { color: var(--gold); }
 
-/* ════════════════════════════════════════════════════
-   HERO SECTION
-════════════════════════════════════════════════════ */
+/* ===================================================
+   HERO SECTION SYSTEM
+   =================================================== */
 .hero-section {
   position: relative;
   min-height: 100vh;
   display: flex;
   align-items: center;
+  justify-content: center;
   overflow: visible !important;
+  width: 100%;
 }
 
 .hero-slider-bg {
@@ -479,6 +579,18 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Absolute insurance centering the inner container layout */
+.hero-section .container {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .hero-eyebrow {
@@ -548,7 +660,6 @@ h1, h2, h3, h4, h5, h6 {
   border: none;
   cursor: pointer;
   transition: all 0.35s ease;
-  padding: 0;
 }
 
 .dot.active       { width: 36px; background: var(--gold); }
@@ -560,24 +671,44 @@ h1, h2, h3, h4, h5, h6 {
 .booking-widget {
   width: 100%;
   max-width: 1000px;
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
-  border-radius: 12px;
-  overflow: visible; /* allow calendar popups to overflow */
-  box-shadow:
-    0 28px 80px var(--glass-shadow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   position: relative;
-  transition: var(--theme-transition);
+  overflow: visible; /* allows calendar popups to overflow */
+  border-radius: 16px; /* slightly wider radius for a modern feel */
+  
+  /* 1. Clear Glass Base: Neutral low opacity completely eliminates the brown muddy tint */
+  background: rgba(255, 255, 255, 0.05); 
+  
+  /* 2. Deep Frosting: Higher blur with saturation boosts the background photo vibrance */
+  backdrop-filter: blur(25px) saturate(150%);
+  -webkit-backdrop-filter: blur(25px) saturate(150%);
+  
+  /* 3. Razor-Sharp Border: Crisp, ultra-thin white line to frame the widget over dark scenery */
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  
+  /* 4. Multi-Layered Shadows: Deep dark-room depth mixed with a sharp inner edge light */
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.35), /* Ambient depth over the background */
+    0 10px 30px rgba(0, 0, 0, 0.2),  /* Mid-level structural separation */
+    inset 0 1px 0 rgba(255, 255, 255, 0.25), /* Premium top edge rim light reflection */
+    inset 0 10px 20px rgba(255, 255, 255, 0.02); /* Soft inner facial sheen */
+    
+  /* 5. Fluid Animation: Uses a premium cinematic easing curve */
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Light Theme Polish: Keeps high visibility without looking washed out */
 [data-theme="light"] .booking-widget {
-  background: rgba(255, 255, 255, 0.72);
-  border-color: var(--glass-border);
-  box-shadow: 0 20px 60px var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.45); 
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 
+    0 25px 60px rgba(31, 38, 135, 0.07),
+    0 8px 20px rgba(31, 38, 135, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
+
+
 
 /* ── Widget Header ───────────────────────────────── */
 .widget-header {
@@ -1013,7 +1144,7 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 8px;
   background:
     linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.44) 100%),
-    url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=900&q=80') center/cover no-repeat;
+    url('https://images.unsplash.com/photo-1625513123245-fcb02d69ad12?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D') center/cover no-repeat;
   border: 1px solid var(--border);
   box-shadow: 0 12px 40px var(--glass-shadow);
 }

@@ -24,7 +24,7 @@ function goToFlights() {
         <div class="row g-3">
           <div class="col-6 col-lg-3">
             <div class="dest-card" @click="goToFlights">
-              <img src="" alt="Paris">
+              <img src="https://plus.unsplash.com/premium_photo-1661919210043-fd847a58522d?q=80&w=1171&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Paris">
               <div class="dest-overlay">
                 <span class="dest-tag">The City of Lights</span>
                 <span class="dest-name">Paris</span>
@@ -33,7 +33,7 @@ function goToFlights() {
           </div>
           <div class="col-6 col-lg-3">
             <div class="dest-card" @click="goToFlights">
-              <img src="">
+              <img src="https://images.unsplash.com/photo-1590001155093-a3c66ab0c3ff?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D">
               <div class="dest-overlay">
                 <span class="dest-tag">Ocean Sanctuary</span>
                 <span class="dest-name">Maldives</span>
@@ -42,16 +42,16 @@ function goToFlights() {
           </div>
           <div class="col-6 col-lg-3">
             <div class="dest-card" @click="goToFlights">
-              <img src="" alt="Tokyo">
+              <img src="https://images.unsplash.com/photo-1775990631111-ca4643f8f448?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Tokyo">
               <div class="dest-overlay">
-                <span class="dest-tag">Neon Meets Tradition</span>
-                <span class="dest-name">Tokyo</span>
+                <span class="dest-tag"> Where Heritage Meets the Horizon</span>
+                <span class="dest-name">Japan</span>
               </div>
             </div>
           </div>
           <div class="col-6 col-lg-3">
             <div class="dest-card" @click="goToFlights">
-              <img src="https://images.unsplash.com/photo-1598258710957-db8614c2881e?w=600&q=70" alt="Manila">
+              <img src="https://images.unsplash.com/photo-1750493192599-95b66b78b5d3?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Manila">
               <div class="dest-overlay">
                 <span class="dest-tag">It's More Fun Here</span>
                 <span class="dest-name">Manila</span>
@@ -74,7 +74,8 @@ function goToFlights() {
             <a href="#" class="btn-outline-gold mt-4 d-inline-block">Discover the Experience</a>
           </div>
           <div class="col-lg-6">
-            <div class="about-visual"></div>
+            <div class="about-visual">
+            </div>
           </div>
         </div>
       </div>
