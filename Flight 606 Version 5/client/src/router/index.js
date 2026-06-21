@@ -13,6 +13,7 @@ import ProfilePage from '../pages/ProfilePage.vue'
 import MyBookingsPage from '../pages/MyBookingsPage.vue'
 import CheckInPage from '../pages/CheckInPage.vue'
 import FlightStatusPage from '../pages/FlightStatusPage.vue'
+import AdminDashboardPage from '../pages/AdminDashboardPage.vue'
 
 const routes = [
   { path: '/', name: 'Home', component: HomePage },
@@ -35,8 +36,19 @@ const routes = [
   { path: '/check-in', name: 'CheckIn', component: CheckInPage },
   { path: '/flight-status', name: 'FlightStatus', component: FlightStatusPage },
 
+  // Admin-only. requiresAuth gets logged-out users sent to Login first;
+  // requiresAdmin then bounces any non-admin (including logged-in passengers)
+  // back to Home. See the beforeEach guard below.
+  { path: '/admin-dashboard', name: 'AdminDashboard', component: AdminDashboardPage, meta: { requiresAuth: true, requiresAdmin: true } },
+
   { path: '/:pathMatch(.*)*', redirect: '/' }
 ]
+
+const corsOptions = {
+    origin: ["http://localhost:5173", "http://localhost:8000"],
+    credentials: true,
+    optionsSuccessStatus: 200
+};
 
 const router = createRouter({
   history: createWebHistory(),
@@ -57,6 +69,9 @@ router.beforeEach((to) => {
 
   if (to.meta.requiresAuth && !isLoggedIn) {
     return { name: 'Login', query: { redirect: to.fullPath } }
+  }
+  if (to.meta.requiresAdmin && !globalStore.isAdmin) {
+    return { name: 'Home' }
   }
   if (to.meta.guestOnly && isLoggedIn) {
     return { name: 'Home' }

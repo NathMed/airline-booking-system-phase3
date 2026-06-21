@@ -1,48 +1,47 @@
 const mongoose = require("mongoose");
 
+// NOTE: this is a minimal reference covering only the fields I can already
+// confirm your codebase depends on:
+//   - email, isAdmin  → read in auth.js createAccessToken()
+//   - email, firstName, isAdmin → read in stores/global.js getUserDetails()
+// If you already have a User model with more fields (lastName, mobileNo,
+// etc.), keep those — just make sure these four are present and named
+// exactly this way, since other files already depend on the exact names.
+
 const userSchema = new mongoose.Schema({
-	firstName: {
-		type: String,
-		required: [true, "First Name is Required"]
-	},
-
-	lastName: {
-		type: String,
-		required: [true, "Last Name is Required"]
-	},
-
-	gender: {
-	    type: String,
-	    required: [true, "Gender is Required"],
-	    enum: ["Male", "Female"]
-	},
-
 	email: {
 		type: String,
-		required: [true, "Email is Required"],
+		required: [true, "Email is required"],
 		unique: true,
-		lowercase: true
+		lowercase: true,
+		trim: true
 	},
 
 	password: {
 		type: String,
-		required: [true, "Password is Required"],
+		required: [true, "Password is required"]
 	},
 
-	phone: {
+	firstName: {
 		type: String,
-		required: [true, "Mobile Number is Required"],
+		required: [true, "First name is required"]
+	},
+
+	lastName: {
+		type: String,
+		default: null
 	},
 
 	isAdmin: {
 		type: Boolean,
 		default: false
 	},
-	
+
 	isActive: {
 		type: Boolean,
 		default: true
 	}
+
 }, { timestamps: true });
 
 module.exports = mongoose.model("User", userSchema);

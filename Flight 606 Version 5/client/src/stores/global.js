@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { reactive } from 'vue';
+import { reactive, computed } from 'vue';
 import { getProfile } from '../api.js';
 
 export const useGlobalStore = defineStore('global', () => {
@@ -10,6 +10,11 @@ export const useGlobalStore = defineStore('global', () => {
         // Read directly from localStorage on load so the navbar doesn't flicker/misbehave
         isAdmin: localStorage.getItem('isAdmin') === 'true' 
     });
+
+    // Thin convenience getter over user.isAdmin — use this in route guards /
+    // templates instead of reaching into user.isAdmin directly. Does not
+    // duplicate state, just exposes it; user.isAdmin stays the source of truth.
+    const isAdmin = computed(() => user.isAdmin === true);
 
     async function getUserDetails(token) {
         if (!token) {
@@ -58,6 +63,7 @@ export const useGlobalStore = defineStore('global', () => {
 
     return {
         user,
+        isAdmin,
         getUserDetails,
     }
 });

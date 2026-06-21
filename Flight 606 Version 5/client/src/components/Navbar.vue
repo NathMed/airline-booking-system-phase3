@@ -132,6 +132,12 @@ function doLogout() {
               <RouterLink :to="{ name: 'CheckIn' }" @click="closeProfileMenu">
                 <i class="bi bi-qr-code-scan"></i> Check-in
               </RouterLink>
+              <template v-if="store.isAdmin">
+                <div class="pm-sep"></div>
+                <RouterLink :to="{ name: 'AdminDashboard' }" @click="closeProfileMenu">
+                  <i class="bi bi-speedometer2"></i> Admin Dashboard
+                </RouterLink>
+              </template>
               <div class="pm-sep"></div>
               <a href="#" class="logout-link" @click.prevent="doLogout">
                 <i class="bi bi-box-arrow-right"></i> Log out
