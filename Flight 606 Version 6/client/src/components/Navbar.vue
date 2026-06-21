@@ -56,7 +56,7 @@ function doLogout() {
 
       <!-- Logo — image placeholder (swap src when you have an asset) -->
       <RouterLink class="navbar-brand" :to="{ name: 'Home' }">
-        <img src="https://placeholder.com" alt="Logo" class="nav-logo" />
+        <img src="../assets/logo-flight606.png" alt="Logo" class="nav-logo" />
       </RouterLink>
 
       <!-- Hamburger -->
