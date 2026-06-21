@@ -315,7 +315,7 @@ h1, h2, h3, h4, h5, h6 {
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.navbar-nav .nav-link:hover { color: #ffffff !important; }
+.navbar-nav .nav-link:hover { color: #ffffff; }
 .navbar-nav .nav-link:hover::after { transform: translateX(-50%) scaleX(0.6); background-color: #ffffff; }
 .navbar-nav .nav-link.active { color: var(--gold) !important; }
 .navbar-nav .nav-link.active::after { transform: translateX(-50%) scaleX(1); background-color: var(--gold); }
@@ -1611,7 +1611,7 @@ h1, h2, h3, h4, h5, h6 {
 /* ════════════════════════════════════════════════════
    INNER PAGES
 ════════════════════════════════════════════════════ */
-.inner-page { padding-top: 70px; min-height: 100vh; }
+.inner-page { padding-top: 0px; min-height: 100vh; }
 
 .inner-hero {
   background:

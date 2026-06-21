@@ -3,6 +3,15 @@
 <template>
   <div class="page active">
     <div class="inner-page">
+
+      <div class="inner-hero">
+        <div class="container text-center">
+          <p class="hero-eyebrow">Flight 606 · Luxury Redefined</p>
+          <h1 class="hero-title">Escape The <em>Ordinary</em> World</h1>
+          <p class="hero-sub">Find your personal sanctuary in secluded corners of the globe</p>
+        </div>
+      </div>
+
       <div class="pt-5">
         <div class="container">
           <div class="text-center mb-5">

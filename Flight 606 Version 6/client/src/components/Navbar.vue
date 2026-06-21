@@ -151,6 +151,7 @@ function doLogout() {
   </nav>
 </template>
 
+
 <style scoped>
 /* Nav logo image — sized for the navbar bar */
 .nav-logo {
@@ -159,4 +160,6 @@ function doLogout() {
   object-fit: contain;
   display: block;
 }
+
 </style>
+
