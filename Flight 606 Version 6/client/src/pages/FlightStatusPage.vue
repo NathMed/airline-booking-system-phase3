@@ -54,9 +54,17 @@ onMounted(() => {
 <template>
   <div class="page active">
     <div class="inner-page">
+
+      <div class="inner-hero">
+        <div class="container text-center">
+          <p class="hero-eyebrow">Flight 606 · Luxury Redefined</p>
+          <h1 class="hero-title">Unleash Your <em>Wanderlust</em> Today</h1>
+          <p class="hero-sub">Seek the unknown and conquer wild landscapes without compromise</p>
+        </div>
+      </div>
+
       <div class="pt-5">
         <div class="container" style="max-width:640px;">
-
           <nav class="theme-breadcrumb" aria-label="breadcrumb">
             <ol class="breadcrumb mb-0">
               <li class="breadcrumb-item"><RouterLink :to="{ name: 'Home' }">Home</RouterLink></li>

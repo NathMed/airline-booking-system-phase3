@@ -72,6 +72,13 @@ onMounted(() => {
 <template>
   <div class="page active">
     <div class="inner-page">
+            <div class="inner-hero">
+        <div class="container text-center">
+          <p class="hero-eyebrow">Flight 606 · Luxury Redefined</p>
+          <h1 class="hero-title">Your Next <em>Chapter</em> Begins Here</h1>
+          <p class="hero-sub">Bespoke journeys crafted for the modern global traveler</p>
+        </div>
+      </div>
       <div class="pt-5">
         <div class="container" style="max-width:640px;">
 
