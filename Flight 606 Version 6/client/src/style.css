@@ -406,29 +406,36 @@ h1, h2, h3, h4, h5, h6 {
 /* ── Desktop Center-Alignment Rules ────────────────────────── */
 @media (min-width: 992px) {
   .nav-inner {
-    position: relative !important;
-    display: flex !important;
+    display: grid !important;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center !important;
-    justify-content: space-between !important;
+    padding: 0 24px !important; /* Hug the edges more */
+    max-width: 1600px !important; /* Allow spreading further on ultra-wide screens */
+  }
+
+  .navbar-brand {
+    justify-self: start !important;
+    margin: 0 !important;
   }
 
   #mainNav .navbar-collapse {
-    display: flex !important;
-    width: 100% !important;
+    display: contents !important;
   }
 
   #mainNav .navbar-nav {
-    margin: 0 auto !important;
-    width: max-content !important;
+    justify-self: center !important;
     display: flex !important;
     flex-direction: row !important;
     gap: 4px !important;
+    margin: 0 !important;
+    width: max-content !important;
     z-index: 1050;
   }
 
   #mainNav .nav-actions {
-    margin-left: auto !important;
-    position: relative !important;
+    justify-self: end !important;
+    margin: 0 !important;
+    display: flex !important;
     z-index: 1060;
   }
 }
