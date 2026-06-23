@@ -5,6 +5,7 @@ import { useGlobalStore } from '../stores/global.js'
 
 const theme       = inject('theme')
 const toggleTheme = inject('toggleTheme')
+const isMenuOpen = ref(false)
 
 const store = useGlobalStore()
 const router = useRouter()
@@ -54,53 +55,57 @@ function doLogout() {
   >
     <div class="container-fluid nav-inner">
 
-      <!-- Logo — image placeholder (swap src when you have an asset) -->
-      <RouterLink class="navbar-brand" :to="{ name: 'Home' }">
-        <img src="../assets/logo-flight606.png" alt="Logo" class="nav-logo" />
+      <!-- Logo -->
+      <RouterLink class="navbar-brand" :to="{ name: 'Home' }" @click="isMenuOpen = false">
+        <img src="../assets/logo-flight606.png" alt="Logo" class="nav-logo-img" />
       </RouterLink>
 
-      <!-- Hamburger -->
+      <!-- Hamburger (Controlled by Vue @click) -->
       <button
         class="navbar-toggler"
         type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#navbarContent"
         aria-controls="navbarContent"
-        aria-expanded="false"
+        :aria-expanded="isMenuOpen"
         aria-label="Toggle navigation"
+        @click="isMenuOpen = !isMenuOpen"
       >
         <span class="toggler-icon"></span>
         <span class="toggler-icon"></span>
         <span class="toggler-icon"></span>
       </button>
 
-      <div class="collapse navbar-collapse" id="navbarContent">
+      <!-- Menu Container (Class handled by Vue) -->
+      <div 
+        class="collapse navbar-collapse" 
+        id="navbarContent"
+        :class="{ 'show': isMenuOpen }"
+      >
         <ul class="navbar-nav mx-auto gap-lg-2">
           <li class="nav-item">
-            <RouterLink class="nav-link" active-class="active" :to="{ name: 'Home' }">Home</RouterLink>
+            <RouterLink class="nav-link" active-class="active" :to="{ name: 'Home' }" @click="isMenuOpen = false">Home</RouterLink>
           </li>
           <li class="nav-item">
-            <RouterLink class="nav-link" active-class="active" :to="{ name: 'SearchFlights' }">Flights</RouterLink>
+            <RouterLink class="nav-link" active-class="active" :to="{ name: 'SearchFlights' }" @click="isMenuOpen = false">Flights</RouterLink>
           </li>
           <li class="nav-item">
-            <RouterLink class="nav-link" active-class="active" :to="{ path: '/', hash: '#tours' }">Destinations</RouterLink>
+            <RouterLink class="nav-link" active-class="active" :to="{ path: '/', hash: '#tours' }" @click="isMenuOpen = false">Destinations</RouterLink>
           </li>
           <li class="nav-item">
-            <RouterLink class="nav-link" active-class="active" :to="{ name: 'FlightStatus' }">Flight Status</RouterLink>
+            <RouterLink class="nav-link" active-class="active" :to="{ name: 'FlightStatus' }" @click="isMenuOpen = false">Flight Status</RouterLink>
           </li>
           <li class="nav-item">
-            <RouterLink class="nav-link" active-class="active" :to="{ name: 'CheckIn' }">Check-in</RouterLink>
+            <RouterLink class="nav-link" active-class="active" :to="{ name: 'CheckIn' }" @click="isMenuOpen = false">Check-in</RouterLink>
           </li>
           <li class="nav-item">
-            <RouterLink class="nav-link" active-class="active" :to="{ name: 'Contact' }">Contact</RouterLink>
+            <RouterLink class="nav-link" active-class="active" :to="{ name: 'Contact' }" @click="isMenuOpen = false">Contact</RouterLink>
           </li>
         </ul>
 
         <div class="nav-actions d-flex align-items-center gap-2">
-
           <!-- Theme toggle -->
           <button
             class="theme-toggle"
+            style="width: 40px; height: 40px;"
             @click="toggleTheme"
             aria-label="Toggle light/dark mode"
             title="Toggle light/dark mode"
@@ -111,8 +116,8 @@ function doLogout() {
 
           <!-- Logged out -->
           <div v-if="!isLoggedIn" class="d-flex align-items-center gap-2">
-            <RouterLink class="btn-ghost" :to="{ name: 'Login' }">Login</RouterLink>
-            <RouterLink class="btn-gold" :to="{ name: 'Signup' }">Sign Up</RouterLink>
+            <RouterLink class="btn-ghost text-nowrap" :to="{ name: 'Login' }" @click="isMenuOpen = false">Login</RouterLink>
+            <RouterLink class="btn-gold text-nowrap" :to="{ name: 'Signup' }" @click="isMenuOpen = false">Sign Up</RouterLink>
           </div>
 
           <!-- Logged in -->
@@ -123,28 +128,27 @@ function doLogout() {
               <i class="bi bi-chevron-down small"></i>
             </button>
             <div class="profile-menu" :class="{ open: profileMenuOpen }">
-              <RouterLink :to="{ name: 'Profile' }" @click="closeProfileMenu">
+              <RouterLink :to="{ name: 'Profile' }" @click="closeProfileMenu(); isMenuOpen = false">
                 <i class="bi bi-person"></i> Personal Details
               </RouterLink>
-              <RouterLink :to="{ name: 'MyBookings' }" @click="closeProfileMenu">
+              <RouterLink :to="{ name: 'MyBookings' }" @click="closeProfileMenu(); isMenuOpen = false">
                 <i class="bi bi-wallet2"></i> My Bookings
               </RouterLink>
-              <RouterLink :to="{ name: 'CheckIn' }" @click="closeProfileMenu">
+              <RouterLink :to="{ name: 'CheckIn' }" @click="closeProfileMenu(); isMenuOpen = false">
                 <i class="bi bi-qr-code-scan"></i> Check-in
               </RouterLink>
               <template v-if="store.isAdmin">
                 <div class="pm-sep"></div>
-                <RouterLink :to="{ name: 'AdminDashboard' }" @click="closeProfileMenu">
+                <RouterLink :to="{ name: 'AdminDashboard' }" @click="closeProfileMenu(); isMenuOpen = false">
                   <i class="bi bi-speedometer2"></i> Admin Dashboard
                 </RouterLink>
               </template>
               <div class="pm-sep"></div>
-              <a href="#" class="logout-link" @click.prevent="doLogout">
+              <a href="#" class="logout-link" @click.prevent="doLogout(); isMenuOpen = false">
                 <i class="bi bi-box-arrow-right"></i> Log out
               </a>
             </div>
           </div>
-
         </div>
       </div>
     </div>
@@ -152,13 +156,73 @@ function doLogout() {
 </template>
 
 
+
 <style scoped>
-/* Nav logo image — sized for the navbar bar */
-.nav-logo {
+/* Logo image — sized for the navbar bar (component-scoped)
+   Use a distinct class to avoid colliding with global `.nav-logo` rules. */
+.nav-logo-img {
   height: 36px;
   width: auto;
   object-fit: contain;
   display: block;
+}
+
+/* Responsive: mobile / tablet collapse layout */
+@media (max-width: 991.98px) {
+  .nav-inner { padding: 0 16px; }
+
+  /* Make the collapsed panel full-width and visually separated */
+  .navbar-collapse {
+    background: var(--bg-60);
+    position: absolute;
+    top: 70px;
+    left: 0;
+    right: 0;
+    padding: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+    z-index: 1040;
+  }
+
+  .navbar-nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+    margin: 0;
+  }
+
+  .navbar-nav .nav-item { width: 100%; }
+
+  .navbar-nav .nav-link {
+    padding: 12px 14px !important;
+    width: 100%;
+    color: var(--text) !important;
+    background: transparent;
+    border-radius: 8px;
+  }
+
+  .nav-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+    width: 100%;
+  }
+
+  .nav-actions .btn-ghost,
+  .nav-actions .btn-gold,
+  .nav-actions .theme-toggle,
+  .nav-actions .profile-trigger {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 575.98px) {
+  #mainNav { height: 64px; }
+  .nav-logo-img { height: 30px; }
+  .nav-inner { padding: 0 12px; }
+  .toggler-icon { display: block; width: 10%; height: 1.5px; background: #ffffff; margin: 4px 0; }
 }
 
 </style>
