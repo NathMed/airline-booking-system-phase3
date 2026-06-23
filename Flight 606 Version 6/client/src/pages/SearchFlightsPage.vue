@@ -59,6 +59,7 @@ onMounted(async () => {
       fromVal.value = route.query.from
       toVal.value = route.query.to
       sfDate.value = route.query.date
+      pax.value = route.query.pax
       if (route.query.type) tripType.value = route.query.type
       
       // Auto-trigger network search instantly

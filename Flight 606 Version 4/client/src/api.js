@@ -2,6 +2,7 @@ import axios from "axios";
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_FLIGHT_606_API});
+    timeout: 5000
 
 // Attach token to every request if available
 api.interceptors.request.use((config) => {
