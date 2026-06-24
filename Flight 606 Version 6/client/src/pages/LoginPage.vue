@@ -48,7 +48,7 @@ async function doLogin() {
 <template>
   <div class="page active">
     <div class="auth-bg">
-      <div class="container">
+      <div class="container py-5">
         <div class="row align-items-center min-vh-100 py-5">
           <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-center pe-5">
             <p class="auth-eyebrow">Flight 606 · Luxury Redefined</p>
