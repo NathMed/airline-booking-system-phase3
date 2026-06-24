@@ -48,6 +48,7 @@ function goToSearch() {
       from: fromVal.value,
       to: toVal.value,
       date,
+      pax: paxVal.value,
       type: tripMode.value === 'round' ? 'roundtrip' : 'oneway'
     }
   })
@@ -174,8 +175,6 @@ const MC_DESTS = [
             <option>1 Adult</option>
             <option>2 Adults</option>
             <option>3 Adults</option>
-            <option>2 Adults, 1 Child</option>
-            <option>2 Adults, 2 Children</option>
           </select>
         </div>
       </div>
@@ -210,8 +209,6 @@ const MC_DESTS = [
             <option>1 Adult</option>
             <option>2 Adults</option>
             <option>3 Adults</option>
-            <option>2 Adults, 1 Child</option>
-            <option>2 Adults, 2 Children</option>
           </select>
         </div>
       </div>
@@ -259,8 +256,6 @@ const MC_DESTS = [
               <option>1 Adult</option>
               <option>2 Adults</option>
               <option>3 Adults</option>
-              <option>2 Adults, 1 Child</option>
-              <option>2 Adults, 2 Children</option>
             </select>
           </div>
         </div>
