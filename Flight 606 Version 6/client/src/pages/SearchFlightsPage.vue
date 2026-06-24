@@ -20,8 +20,9 @@ const errorMessage = ref('')
 const tripType = ref('oneway') // 'oneway' or 'roundtrip'
 const fromVal  = ref('')       // Stores Origin Airport Database _id
 const toVal    = ref('')       // Stores Destination Airport Database _id
-const sfDate   = ref('')       // Target Departure Date String
-const pax      = ref('2 Adults')
+const sfDate      = ref('')   // Outbound departure date
+const returnDate  = ref('')   // Return departure date (roundtrip only)
+const pax         = ref('2 Adults')
 
 // Flight Result Buckets & Leg Trackers
 const flightResultsPerSegment = ref([])
@@ -79,12 +80,21 @@ watch(tripType, () => {
   errorMessage.value = ''
   selectedFlightIds.value = []
   flightResultsPerSegment.value = []
+  returnDate.value = ''
 })
 
 // Core Multi-Segment Query Execution Layer
 async function handleSearch() {
   if (!fromVal.value || !toVal.value || !sfDate.value) {
     errorMessage.value = 'Please select an origin, destination, and departure date.'
+    return
+  }
+  if (tripType.value === 'roundtrip' && !returnDate.value) {
+    errorMessage.value = 'Please select a return date for your round trip.'
+    return
+  }
+  if (tripType.value === 'roundtrip' && returnDate.value <= sfDate.value) {
+    errorMessage.value = 'Return date must be after the departure date.'
     return
   }
 
@@ -103,7 +113,8 @@ async function handleSearch() {
 
   // Append Return Segment Leg if tracking a Round-Trip route sequence
   if (tripType.value === 'roundtrip') {
-    segments.push({ origin: toVal.value, destination: fromVal.value, date: adjustedDate })
+    const adjustedReturnDate = returnDate.value + 'T12:00:00+08:00'
+    segments.push({ origin: toVal.value, destination: fromVal.value, date: adjustedReturnDate })
   }
 
   try {
@@ -130,11 +141,11 @@ async function handleSearch() {
 
 // Select specific flight entry for specific route leg index slot
 function selectFlight(segmentIndex, flightId) {
-  selectedFlightIds.value[segmentIndex] = flightId
-
-  // UX Shortcut: If One-Way and selection made, directly forward to checkout checkout view
-  if (tripType.value === 'oneway') {
-    proceedToCheckout()
+  // Toggling: clicking the already-selected flight deselects it
+  if (selectedFlightIds.value[segmentIndex] === flightId) {
+    selectedFlightIds.value[segmentIndex] = null
+  } else {
+    selectedFlightIds.value[segmentIndex] = flightId
   }
 }
 
@@ -144,14 +155,11 @@ function proceedToCheckout() {
 
   const bundledFlightIds = selectedFlightIds.value.join(',')
 
-  // Carry the already-fetched flight objects + passenger count into the
-  // booking store so BookFlightPage doesn't need to re-fetch them.
-  const selectedFlights = selectedFlightIds.value.map((id, i) =>
-    flightResultsPerSegment.value[i].find(f => f._id === id)
-  )
+  // Pass passenger count to the store so BookFlightPage can initialise
+  // the right number of passenger forms. startFunnel is called by
+  // BookFlightPage itself after it fetches seats — don't call it here.
   const paxNumber = parseInt(pax.value, 10) || 1
   bookingStore.setPaxCount(paxNumber)
-  bookingStore.startFunnel({ flights: selectedFlights, isGuest: !isAuthenticated.value })
 
   if (isAuthenticated.value) {
     router.push({ name: 'Checkout', params: { flightId: bundledFlightIds } })
@@ -247,6 +255,10 @@ function calcTravelTime(departure, arrival) {
               <div>
                 <div class="sf-label">Departure Date</div>
                 <input type="date" class="sf-input" v-model="sfDate" :min="new Date().toISOString().split('T')[0]" required>
+              </div>
+              <div v-if="tripType === 'roundtrip'">
+                <div class="sf-label">Return Date</div>
+                <input type="date" class="sf-input" v-model="returnDate" :min="sfDate || new Date().toISOString().split('T')[0]" required>
               </div>
               <div>
                 <div class="sf-label">Passengers</div>
@@ -359,17 +371,18 @@ function calcTravelTime(departure, arrival) {
               </div>
             </div>
 
-            <div v-if="tripType === 'roundtrip'" class="card shadow-lg my-5 border-0 border-top border-warning border-3 bg-dark text-white">
+            <div class="card shadow-lg my-5 border-0 border-top border-warning border-3 bg-dark text-white">
               <div class="card-body d-flex justify-content-between align-items-center py-3">
                 <div>
-                  <span class="fw-bold gold-link">Selection Progress:</span> 
+                  <span class="fw-bold gold-link">Selection Progress:</span>
                   <span class="ms-2 badge bg-warning text-dark">
-                    {{ selectedFlightIds.filter(id => id !== null).length }} / 2 Configured
+                    {{ selectedFlightIds.filter(id => id !== null && id !== undefined).length }}
+                    / {{ tripType === 'roundtrip' ? 2 : 1 }} flight{{ tripType === 'roundtrip' ? 's' : '' }} selected
                   </span>
                 </div>
-                <button 
-                  class="btn-gold-full py-2 px-5 m-0 w-auto" 
-                  :disabled="!isSelectionComplete" 
+                <button
+                  class="btn-gold-full py-2 px-5 m-0 w-auto"
+                  :disabled="!isSelectionComplete"
                   @click="proceedToCheckout"
                 >
                   Confirm Booking Sequence <i class="bi bi-arrow-right ms-2"></i>
