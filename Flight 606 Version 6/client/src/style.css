@@ -177,36 +177,65 @@ h1, h2, h3, h4, h5, h6 {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--gold-dim);
-  border: 1px solid var(--border);
-  color: var(--gold);
   cursor: pointer;
   transition: all 0.3s ease;
   flex-shrink: 0;
   position: relative;
   overflow: hidden;
+
+  /* ── ADDED / CONFIRMED BORDER VALUES ── */
+  background: transparent;
+  border: 2px solid var(--gold); /* Creates a crisp gold border line */
+  color: var(--gold) !important; 
+  box-shadow: none;
 }
 
 .theme-toggle:hover {
   background: var(--gold);
-  color: var(--ink-on-gold);
-  border-color: var(--gold);
-  box-shadow: 0 0 16px var(--gold-dim);
+  border-color: var(--gold); /* Keeps the border gold when filled on hover */
+  box-shadow: 0 4px 15px var(--gold-dim); 
 }
 
+
+/* Base icon structural configurations */
 .theme-toggle .ti {
   font-size: 1.1rem;
-  transition: transform 0.5s ease, opacity 0.3s ease;
+  color: inherit !important; 
+  transition: transform 0.5s ease, opacity 0.3s ease, color 0.3s ease;
+}
+
+/* Force the icon text to change to your dynamic contrast variable on hover */
+.theme-toggle:hover .ti {
+  color: var(--ink-on-gold) !important;
 }
 
 .theme-toggle .icon-dark,
-.theme-toggle .icon-light { position: absolute; }
+.theme-toggle .icon-light { 
+  position: absolute; 
+  top: 50%;
+  left: 50%;
+  /* Removed layout transition interference by treating rotation transformations independently */
+}
 
-/* Dark mode: show moon; Light mode: show sun */
-[data-theme="dark"]  .theme-toggle .icon-light { opacity: 0; transform: rotate(90deg) scale(0.6); }
-[data-theme="dark"]  .theme-toggle .icon-dark  { opacity: 1; transform: rotate(0deg) scale(1); }
-[data-theme="light"] .theme-toggle .icon-dark  { opacity: 0; transform: rotate(-90deg) scale(0.6); }
-[data-theme="light"] .theme-toggle .icon-light { opacity: 1; transform: rotate(0deg) scale(1); }
+/* Dark mode configurations */
+[data-theme="dark"] .theme-toggle .icon-light { 
+  opacity: 0; 
+  transform: translate(-50%, -50%) rotate(90deg) scale(0.6); 
+}
+[data-theme="dark"] .theme-toggle .icon-dark  { 
+  opacity: 1; 
+  transform: translate(-50%, -50%) rotate(0deg) scale(1); 
+}
+
+/* Light mode configurations */
+[data-theme="light"] .theme-toggle .icon-dark  { 
+  opacity: 0; 
+  transform: translate(-50%, -50%) rotate(-90deg) scale(0.6); 
+}
+[data-theme="light"] .theme-toggle .icon-light { 
+  opacity: 1; 
+  transform: translate(-50%, -50%) rotate(0deg) scale(1); 
+}
 
 /* ════════════════════════════════════════════════════
    NAVBAR MASTER SYSTEM (LIGHT/DARK & ALIGNMENT FIXED)
@@ -327,15 +356,23 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #ffffff !important; /* White text over the hero image */
   text-decoration: none;
-  padding: 10px 22px;
-  background: rgba(255, 255, 255, 0.08); 
-  border-radius: 30px; 
+  padding: 11px 26px;
+  border-radius: 30px;
+  cursor: pointer;
   transition: all 0.3s ease;
+  display: inline-block;
   white-space: nowrap;
+  background: transparent;
+  color: var(--gold) !important;
+  border: 2px solid var(--gold);
+  box-shadow: none;
 }
-.btn-ghost:hover { background: rgba(255, 255, 255, 0.18); }
+
+.btn-ghost:hover { 
+  background: var(--gold);
+  color: var(--ink-on-gold) !important;
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);}
 
 .btn-gold {
   font-family: var(--font-sans);
@@ -369,33 +406,36 @@ h1, h2, h3, h4, h5, h6 {
 /* ── Desktop Center-Alignment Rules ────────────────────────── */
 @media (min-width: 992px) {
   .nav-inner {
-    position: relative !important;
-    display: flex !important;
+    display: grid !important;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center !important;
-    justify-content: space-between !important;
+    padding: 0 24px !important; /* Hug the edges more */
+    max-width: 1600px !important; /* Allow spreading further on ultra-wide screens */
+  }
+
+  .navbar-brand {
+    justify-self: start !important;
+    margin: 0 !important;
   }
 
   #mainNav .navbar-collapse {
-    display: flex !important;
-    width: 100% !important;
+    display: contents !important;
   }
 
   #mainNav .navbar-nav {
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    margin: 0 !important;
-    width: max-content !important;
+    justify-self: center !important;
     display: flex !important;
     flex-direction: row !important;
     gap: 4px !important;
+    margin: 0 !important;
+    width: max-content !important;
     z-index: 1050;
   }
 
   #mainNav .nav-actions {
-    margin-left: auto !important;
-    position: relative !important;
+    justify-self: end !important;
+    margin: 0 !important;
+    display: flex !important;
     z-index: 1060;
   }
 }
