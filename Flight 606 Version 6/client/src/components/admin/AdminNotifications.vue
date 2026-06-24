@@ -6,51 +6,38 @@ const notifications = ref([]);
 const isLoading = ref(true);
 const pageError = ref(null);
 
-// Search/filter
 const searchQuery = ref('');
 const filterType = ref('all');
 const filterStatus = ref('all');
 const filterRead = ref('all');
 
-// Action feedback
 const actionSuccess = ref(null);
 const actionError = ref(null);
 
-// Detail modal
 const showDetailModal = ref(false);
 const detailTarget = ref(null);
 
-const TYPE_LABELS = {
-    booking_confirmed:   { label: 'Booking Confirmed',   icon: 'bi-check-circle-fill',     color: 'success' },
-    flight_status_change:{ label: 'Flight Status Change', icon: 'bi-airplane-fill',          color: 'warning' },
-    itinerary_created:   { label: 'Itinerary Created',    icon: 'bi-map-fill',               color: 'primary' },
+const TYPE_META = {
+    booking_confirmed:    { label: 'Booking Confirmed',   icon: 'ti-circle-check',  badgeClass: 'badge-active'   },
+    flight_status_change: { label: 'Flight Status Change', icon: 'ti-plane',         badgeClass: 'badge-warning'  },
+    itinerary_created:    { label: 'Itinerary Created',    icon: 'ti-map',           badgeClass: 'badge-muted'    },
 };
 
-const getTypeMeta = (type) => TYPE_LABELS[type] || { label: type, icon: 'bi-bell-fill', color: 'secondary' };
+const getTypeMeta = (type) => TYPE_META[type] || { label: type, icon: 'ti-bell', badgeClass: 'badge-muted' };
 
-const uniqueTypes = computed(() => {
-    const types = [...new Set(notifications.value.map(n => n.type))];
-    return types;
-});
+const uniqueTypes = computed(() => [...new Set(notifications.value.map(n => n.type))]);
 
 const filteredNotifications = computed(() => {
     let list = notifications.value;
-
     if (filterType.value !== 'all') list = list.filter(n => n.type === filterType.value);
     if (filterStatus.value === 'active') list = list.filter(n => n.isActive);
     else if (filterStatus.value === 'inactive') list = list.filter(n => !n.isActive);
     if (filterRead.value === 'read') list = list.filter(n => n.isRead);
     else if (filterRead.value === 'unread') list = list.filter(n => !n.isRead);
-
     if (searchQuery.value.trim()) {
         const q = searchQuery.value.toLowerCase();
-        list = list.filter(n =>
-            n.message?.toLowerCase().includes(q) ||
-            n.guestEmail?.toLowerCase().includes(q) ||
-            n.userId?.toLowerCase().includes(q)
-        );
+        list = list.filter(n => n.message?.toLowerCase().includes(q) || n.guestEmail?.toLowerCase().includes(q) || n.userId?.toLowerCase().includes(q));
     }
-
     return list;
 });
 
@@ -62,38 +49,28 @@ const stats = computed(() => ({
 }));
 
 const fetchNotifications = async () => {
-    isLoading.value = true;
-    pageError.value = null;
+    isLoading.value = true; pageError.value = null;
     try {
         const data = await getAllNotifications();
         notifications.value = data.result;
     } catch (err) {
-        if (err.response?.status === 404) {
-            notifications.value = [];
-        } else {
-            pageError.value = err.response?.data?.message || 'Failed to load notifications.';
-        }
+        if (err.response?.status === 404) notifications.value = [];
+        else pageError.value = err.response?.data?.message || 'Failed to load notifications.';
     } finally {
         isLoading.value = false;
     }
 };
 
-const openDetail = (notification) => {
-    detailTarget.value = notification;
-    showDetailModal.value = true;
-};
+const openDetail = (notification) => { detailTarget.value = notification; showDetailModal.value = true; };
 
 const deactivate = async (notification) => {
-    if (!confirm(`Deactivate this notification? It will be hidden from the user.`)) return;
-    actionError.value = null;
-    actionSuccess.value = null;
+    if (!confirm('Deactivate this notification? It will be hidden from the user.')) return;
+    actionError.value = null; actionSuccess.value = null;
     try {
         await deactivateNotification(notification._id);
         await fetchNotifications();
         actionSuccess.value = 'Notification deactivated successfully.';
-        if (showDetailModal.value && detailTarget.value?._id === notification._id) {
-            showDetailModal.value = false;
-        }
+        if (showDetailModal.value && detailTarget.value?._id === notification._id) showDetailModal.value = false;
         setTimeout(() => actionSuccess.value = null, 4000);
     } catch (err) {
         actionError.value = err.response?.data?.message || 'Failed to deactivate notification.';
@@ -101,313 +78,210 @@ const deactivate = async (notification) => {
     }
 };
 
-onMounted(() => {
-    fetchNotifications();
-});
+onMounted(fetchNotifications);
 </script>
 
 <template>
-  <div>
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <div>
-        <h4 class="mb-0">
-          <i class="bi bi-bell-fill me-2 text-primary"></i>Notification Management
-        </h4>
-        <small class="text-muted">{{ notifications.length }} total notifications sent</small>
-      </div>
-      <button @click="fetchNotifications" class="btn btn-outline-secondary btn-sm rounded-pill">
-        <i class="bi bi-arrow-clockwise me-1"></i> Refresh
-      </button>
-    </div>
+    <div class="profile-section">
 
-    <!-- Stats Row -->
-    <div class="row g-3 mb-4">
-      <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm text-center py-3">
-          <div class="fs-3 fw-bold text-primary">{{ stats.total }}</div>
-          <div class="small text-muted">Total</div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm text-center py-3">
-          <div class="fs-3 fw-bold text-danger">{{ stats.unread }}</div>
-          <div class="small text-muted">Unread</div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm text-center py-3">
-          <div class="fs-3 fw-bold text-success">{{ stats.active }}</div>
-          <div class="small text-muted">Active</div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm text-center py-3">
-          <div class="fs-3 fw-bold text-secondary">{{ stats.inactive }}</div>
-          <div class="small text-muted">Deactivated</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Feedback Alerts -->
-    <div v-if="actionSuccess" class="alert alert-success alert-dismissible shadow-sm py-2 px-3 mb-3 small">
-      <i class="bi bi-check-circle-fill me-2"></i>{{ actionSuccess }}
-      <button type="button" class="btn-close btn-sm" @click="actionSuccess = null"></button>
-    </div>
-    <div v-if="actionError" class="alert alert-danger alert-dismissible shadow-sm py-2 px-3 mb-3 small">
-      <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ actionError }}
-      <button type="button" class="btn-close btn-sm" @click="actionError = null"></button>
-    </div>
-
-    <!-- Filters -->
-    <div class="card shadow-sm border-0 mb-4">
-      <div class="card-body py-3">
-        <div class="row g-2 align-items-center">
-          <div class="col-md-4">
-            <div class="input-group">
-              <span class="input-group-text bg-white border-end-0">
-                <i class="bi bi-search text-muted"></i>
-              </span>
-              <input
-                type="text"
-                class="form-control border-start-0"
-                placeholder="Search message or recipient..."
-                v-model="searchQuery"
-              >
-            </div>
-          </div>
-          <div class="col-md-3">
-            <select class="form-select" v-model="filterType">
-              <option value="all">All Types</option>
-              <option v-for="type in uniqueTypes" :key="type" :value="type">
-                {{ getTypeMeta(type).label }}
-              </option>
-            </select>
-          </div>
-          <div class="col-md-2">
-            <select class="form-select" v-model="filterStatus">
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </div>
-          <div class="col-md-2">
-            <select class="form-select" v-model="filterRead">
-              <option value="all">Read & Unread</option>
-              <option value="unread">Unread Only</option>
-              <option value="read">Read Only</option>
-            </select>
-          </div>
-          <div class="col-md-1 text-end">
-            <span class="text-muted small">{{ filteredNotifications.length }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Loading -->
-    <div v-if="isLoading" class="text-center py-5">
-      <div class="spinner-border text-primary" role="status"></div>
-      <p class="text-muted mt-2 small">Loading notifications...</p>
-    </div>
-
-    <!-- Page Error -->
-    <div v-else-if="pageError" class="alert alert-danger shadow-sm">
-      <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ pageError }}
-    </div>
-
-    <!-- Empty State -->
-    <div v-else-if="filteredNotifications.length === 0" class="text-center py-5 text-muted">
-      <i class="bi bi-bell-slash d-block fs-1 mb-2"></i>
-      <p>No notifications match your current filters.</p>
-    </div>
-
-    <!-- Notifications Table -->
-    <div v-else class="card shadow-sm border-0">
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
-            <tr>
-              <th>Type</th>
-              <th>Message</th>
-              <th>Recipient</th>
-              <th>Read</th>
-              <th>Email Sent</th>
-              <th>Status</th>
-              <th>Sent At</th>
-              <th class="text-end">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="notification in filteredNotifications"
-              :key="notification._id"
-              :class="{ 'table-secondary': !notification.isActive }"
-            >
-              <!-- Type -->
-              <td>
-                <span
-                  class="badge d-inline-flex align-items-center gap-1"
-                  :class="`bg-${getTypeMeta(notification.type).color}-subtle text-${getTypeMeta(notification.type).color} border border-${getTypeMeta(notification.type).color}-subtle`"
-                >
-                  <i class="bi" :class="getTypeMeta(notification.type).icon"></i>
-                  {{ getTypeMeta(notification.type).label }}
-                </span>
-              </td>
-
-              <!-- Message (truncated) -->
-              <td style="max-width: 250px;">
-                <span class="small text-truncate d-block" style="max-width: 230px;" :title="notification.message">
-                  {{ notification.message }}
-                </span>
-              </td>
-
-              <!-- Recipient -->
-              <td class="small">
-                <span v-if="notification.guestEmail" class="text-muted">
-                  <i class="bi bi-person me-1"></i>{{ notification.guestEmail }}
-                </span>
-                <span v-else-if="notification.userId" class="text-muted font-monospace" style="font-size: 0.75rem;">
-                  <i class="bi bi-person-check me-1"></i>{{ String(notification.userId).substring(0, 12) }}...
-                </span>
-                <span v-else class="text-muted">—</span>
-              </td>
-
-              <!-- Read -->
-              <td class="text-center">
-                <i v-if="notification.isRead" class="bi bi-check-circle-fill text-success"></i>
-                <i v-else class="bi bi-circle text-muted"></i>
-              </td>
-
-              <!-- Email Sent -->
-              <td class="text-center">
-                <i v-if="notification.emailSent" class="bi bi-envelope-check-fill text-primary"></i>
-                <i v-else class="bi bi-envelope-x text-muted"></i>
-              </td>
-
-              <!-- Active Status -->
-              <td>
-                <span v-if="notification.isActive" class="badge bg-success-subtle text-success border border-success-subtle">
-                  <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Active
-                </span>
-                <span v-else class="badge bg-danger-subtle text-danger border border-danger-subtle">
-                  <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Inactive
-                </span>
-              </td>
-
-              <!-- Sent At -->
-              <td class="text-muted small">
-                {{ notification.emailSentAt ? new Date(notification.emailSentAt).toLocaleDateString() : '—' }}
-              </td>
-
-              <!-- Actions -->
-              <td class="text-end">
-                <div class="d-flex gap-1 justify-content-end">
-                  <button
-                    @click="openDetail(notification)"
-                    class="btn btn-sm btn-outline-secondary"
-                    title="View full message"
-                  >
-                    <i class="bi bi-eye"></i>
-                  </button>
-                  <button
-                    v-if="notification.isActive"
-                    @click="deactivate(notification)"
-                    class="btn btn-sm btn-outline-danger"
-                    title="Deactivate notification"
-                  >
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Detail Modal -->
-    <div v-if="showDetailModal && detailTarget" class="modal d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg">
-          <div class="modal-header border-0 pb-0">
-            <h5 class="modal-title">
-              <i class="bi me-2 text-primary" :class="getTypeMeta(detailTarget.type).icon"></i>
-              Notification Detail
-            </h5>
-            <button type="button" class="btn-close" @click="showDetailModal = false"></button>
-          </div>
-          <div class="modal-body">
-
-            <div class="mb-3">
-              <span
-                class="badge d-inline-flex align-items-center gap-1 mb-3"
-                :class="`bg-${getTypeMeta(detailTarget.type).color}-subtle text-${getTypeMeta(detailTarget.type).color} border border-${getTypeMeta(detailTarget.type).color}-subtle`"
-              >
-                <i class="bi" :class="getTypeMeta(detailTarget.type).icon"></i>
-                {{ getTypeMeta(detailTarget.type).label }}
-              </span>
-            </div>
-
-            <div class="bg-light rounded-3 p-3 mb-3">
-              <p class="mb-0 small">{{ detailTarget.message }}</p>
-            </div>
-
-            <table class="table table-sm table-borderless small mb-0">
-              <tbody>
-                <tr>
-                  <td class="text-muted fw-semibold" style="width: 130px;">Recipient</td>
-                  <td>{{ detailTarget.guestEmail || detailTarget.userId || '—' }}</td>
-                </tr>
-                <tr>
-                  <td class="text-muted fw-semibold">Read</td>
-                  <td>
-                    <i v-if="detailTarget.isRead" class="bi bi-check-circle-fill text-success me-1"></i>
-                    <i v-else class="bi bi-circle text-muted me-1"></i>
-                    {{ detailTarget.isRead ? 'Yes' : 'No' }}
-                  </td>
-                </tr>
-                <tr>
-                  <td class="text-muted fw-semibold">Email Sent</td>
-                  <td>
-                    <i v-if="detailTarget.emailSent" class="bi bi-envelope-check-fill text-primary me-1"></i>
-                    {{ detailTarget.emailSent ? 'Yes' : 'No' }}
-                  </td>
-                </tr>
-                <tr>
-                  <td class="text-muted fw-semibold">Sent At</td>
-                  <td>{{ detailTarget.emailSentAt ? new Date(detailTarget.emailSentAt).toLocaleString() : '—' }}</td>
-                </tr>
-                <tr>
-                  <td class="text-muted fw-semibold">Status</td>
-                  <td>
-                    <span v-if="detailTarget.isActive" class="text-success">Active</span>
-                    <span v-else class="text-danger">Inactive</span>
-                  </td>
-                </tr>
-                <tr v-if="detailTarget.referenceModel">
-                  <td class="text-muted fw-semibold">Reference</td>
-                  <td class="font-monospace" style="font-size: 0.75rem;">
-                    {{ detailTarget.referenceModel }}: {{ String(detailTarget.referenceId).substring(0, 16) }}...
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="modal-footer border-0 pt-0">
-            <button type="button" class="btn btn-outline-secondary" @click="showDetailModal = false">Close</button>
-            <button
-              v-if="detailTarget.isActive"
-              type="button"
-              class="btn btn-danger"
-              @click="deactivate(detailTarget)"
-            >
-              <i class="bi bi-trash me-1"></i> Deactivate
+        <div class="ps-header">
+            <h3>Notifications</h3>
+            <button class="btn-refresh" @click="fetchNotifications">
+                <i class="ti ti-refresh"></i> Refresh
             </button>
-          </div>
         </div>
-      </div>
-    </div>
 
-  </div>
+        <div class="ps-body">
+
+            <!-- Stats -->
+            <div class="admin-stats-row">
+                <div class="admin-stat-card">
+                    <div class="admin-stat-number">{{ stats.total }}</div>
+                    <div class="admin-stat-label">Total</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="admin-stat-number stat-error">{{ stats.unread }}</div>
+                    <div class="admin-stat-label">Unread</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="admin-stat-number stat-success">{{ stats.active }}</div>
+                    <div class="admin-stat-label">Active</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="admin-stat-number stat-muted">{{ stats.inactive }}</div>
+                    <div class="admin-stat-label">Deactivated</div>
+                </div>
+            </div>
+
+            <!-- Alerts -->
+            <p v-if="actionSuccess" class="alert-msg alert-success">{{ actionSuccess }}</p>
+            <p v-if="actionError" class="alert-msg alert-error">{{ actionError }}</p>
+
+            <!-- Filters -->
+            <div class="admin-filter-bar">
+                <div class="admin-search-wrap">
+                    <i class="ti ti-search admin-search-icon"></i>
+                    <input type="text" class="admin-search-input" placeholder="Search message or recipient…" v-model="searchQuery" />
+                </div>
+                <select class="admin-filter-select" v-model="filterType">
+                    <option value="all">All Types</option>
+                    <option v-for="type in uniqueTypes" :key="type" :value="type">{{ getTypeMeta(type).label }}</option>
+                </select>
+                <select class="admin-filter-select" v-model="filterStatus">
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+                <select class="admin-filter-select" v-model="filterRead">
+                    <option value="all">Read & Unread</option>
+                    <option value="unread">Unread Only</option>
+                    <option value="read">Read Only</option>
+                </select>
+                <span class="admin-filter-count">{{ filteredNotifications.length }}</span>
+            </div>
+
+            <!-- Loading -->
+            <div v-if="isLoading" class="admin-loading">
+                <i class="ti ti-loader-2 admin-spinner"></i> Loading notifications…
+            </div>
+
+            <p v-else-if="pageError" class="alert-msg alert-error">{{ pageError }}</p>
+
+            <div v-else-if="filteredNotifications.length === 0" class="admin-empty-state">
+                <i class="ti ti-bell-off"></i>
+                <p>No notifications match your current filters.</p>
+            </div>
+
+            <!-- Table -->
+            <div v-else class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Message</th>
+                            <th>Recipient</th>
+                            <th style="text-align:center;">Read</th>
+                            <th style="text-align:center;">Email</th>
+                            <th>Status</th>
+                            <th>Sent At</th>
+                            <th style="text-align:right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="n in filteredNotifications" :key="n._id" :class="{ 'row-inactive': !n.isActive }">
+                            <td>
+                                <span class="admin-badge" :class="getTypeMeta(n.type).badgeClass">
+                                    <i class="ti" :class="getTypeMeta(n.type).icon"></i>
+                                    {{ getTypeMeta(n.type).label }}
+                                </span>
+                            </td>
+                            <td class="cell-truncate" :title="n.message">{{ n.message }}</td>
+                            <td class="cell-muted">
+                                <span v-if="n.guestEmail"><i class="ti ti-user"></i> {{ n.guestEmail }}</span>
+                                <span v-else-if="n.userId" class="cell-mono" style="font-size:0.72rem;">{{ String(n.userId).substring(0,12) }}…</span>
+                                <span v-else>—</span>
+                            </td>
+                            <td style="text-align:center;">
+                                <i class="ti" :class="n.isRead ? 'ti-circle-check read-icon' : 'ti-circle unread-icon'"></i>
+                            </td>
+                            <td style="text-align:center;">
+                                <i class="ti" :class="n.emailSent ? 'ti-mail-check email-sent-icon' : 'ti-mail-off email-unsent-icon'"></i>
+                            </td>
+                            <td>
+                                <span class="admin-badge" :class="n.isActive ? 'badge-active' : 'badge-inactive'">
+                                    {{ n.isActive ? 'Active' : 'Inactive' }}
+                                </span>
+                            </td>
+                            <td class="cell-muted" style="white-space:nowrap;">
+                                {{ n.emailSentAt ? new Date(n.emailSentAt).toLocaleDateString() : '—' }}
+                            </td>
+                            <td>
+                                <div class="admin-actions-cell" style="justify-content:flex-end;">
+                                    <button class="btn-table-icon" title="View details" @click="openDetail(n)">
+                                        <i class="ti ti-eye"></i>
+                                    </button>
+                                    <button v-if="n.isActive" class="btn-table-icon danger" title="Deactivate" @click="deactivate(n)">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Detail Modal -->
+        <div v-if="showDetailModal && detailTarget" class="admin-modal-overlay" @click.self="showDetailModal = false">
+            <div class="admin-modal">
+                <div class="admin-modal-header">
+                    <h4>Notification Detail</h4>
+                    <button class="admin-modal-close" @click="showDetailModal = false"><i class="ti ti-x"></i></button>
+                </div>
+                <div class="admin-modal-body">
+                    <span class="admin-badge" :class="getTypeMeta(detailTarget.type).badgeClass" style="margin-bottom:16px; display:inline-flex;">
+                        <i class="ti" :class="getTypeMeta(detailTarget.type).icon"></i>
+                        {{ getTypeMeta(detailTarget.type).label }}
+                    </span>
+                    <div class="admin-message-box">{{ detailTarget.message }}</div>
+                    <table class="admin-detail-table">
+                        <tbody>
+                            <tr>
+                                <td class="admin-detail-label">Recipient</td>
+                                <td>{{ detailTarget.guestEmail || detailTarget.userId || '—' }}</td>
+                            </tr>
+                            <tr>
+                                <td class="admin-detail-label">Read</td>
+                                <td>
+                                    <i class="ti" :class="detailTarget.isRead ? 'ti-circle-check read-icon' : 'ti-circle unread-icon'"></i>
+                                    {{ detailTarget.isRead ? 'Yes' : 'No' }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="admin-detail-label">Email Sent</td>
+                                <td>{{ detailTarget.emailSent ? 'Yes' : 'No' }}</td>
+                            </tr>
+                            <tr>
+                                <td class="admin-detail-label">Sent At</td>
+                                <td>{{ detailTarget.emailSentAt ? new Date(detailTarget.emailSentAt).toLocaleString() : '—' }}</td>
+                            </tr>
+                            <tr>
+                                <td class="admin-detail-label">Status</td>
+                                <td>
+                                    <span class="admin-badge" :class="detailTarget.isActive ? 'badge-active' : 'badge-inactive'">
+                                        {{ detailTarget.isActive ? 'Active' : 'Inactive' }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr v-if="detailTarget.referenceModel">
+                                <td class="admin-detail-label">Reference</td>
+                                <td class="cell-mono" style="font-size:0.72rem;">{{ detailTarget.referenceModel }}: {{ String(detailTarget.referenceId).substring(0,16) }}…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="admin-modal-footer">
+                    <button class="btn-table-action" @click="showDetailModal = false">Close</button>
+                    <button v-if="detailTarget.isActive" class="btn-table-action btn-table-danger" @click="deactivate(detailTarget)">
+                        <i class="ti ti-trash"></i> Deactivate
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
 </template>
+
+<style scoped>
+@import './admin-shared.css';
+
+.row-inactive td { opacity: 0.5; }
+.cell-truncate { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8rem; color: var(--muted); }
+.cell-muted { color: var(--muted); font-size: 0.8rem; }
+.cell-mono  { font-family: 'DM Mono', monospace; }
+
+.read-icon       { color: var(--success); font-size: 1rem; }
+.unread-icon     { color: var(--muted);   font-size: 1rem; }
+.email-sent-icon { color: var(--gold);    font-size: 1rem; }
+.email-unsent-icon { color: var(--muted); font-size: 1rem; }
+</style>

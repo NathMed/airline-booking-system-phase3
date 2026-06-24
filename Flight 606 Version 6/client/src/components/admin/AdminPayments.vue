@@ -11,7 +11,13 @@ const successMessage = ref(null);
 const selectedPayment = ref(null);
 const newStatus = ref('');
 const isUpdating = ref(false);
-const validStatuses = ["pending", "paid", "failed", "refunded"];
+
+const statusOptions = [
+    { value: 'pending', label: 'Pending', icon: 'ti-hourglass' },
+    { value: 'paid', label: 'Paid', icon: 'ti-circle-check' },
+    { value: 'failed', label: 'Failed', icon: 'ti-circle-x' },
+    { value: 'refunded', label: 'Refunded', icon: 'ti-receipt-refund' },
+];
 
 const fetchPayments = async () => {
     isLoading.value = true;
@@ -39,12 +45,17 @@ const openStatusModal = (payment) => {
     successMessage.value = null;
 };
 
+const closeStatusModal = () => {
+    selectedPayment.value = null;
+    newStatus.value = '';
+};
+
 const submitStatusUpdate = async () => {
     if (!selectedPayment.value || !newStatus.value) return;
-    
+
     // Prevent unnecessary API calls if the status hasn't actually changed
     if (newStatus.value === selectedPayment.value.status) {
-        document.getElementById('closeModalBtn').click();
+        closeStatusModal();
         return;
     }
 
@@ -54,16 +65,15 @@ const submitStatusUpdate = async () => {
     try {
         await updatePaymentStatus(selectedPayment.value._id, { status: newStatus.value });
         successMessage.value = `Payment ${selectedPayment.value.transactionId} successfully updated to '${newStatus.value}'.`;
-        
-        // Programmatically click the hidden close button to dismiss the modal
-        document.getElementById('closeModalBtn').click();
-        
+
+        closeStatusModal();
+
         // Refresh the list to reflect the new data
         await fetchPayments();
     } catch (error) {
         pageError.value = error.response?.data?.message || "Failed to update payment status.";
         // Hide modal so user can see the error on the main screen
-        document.getElementById('closeModalBtn').click();
+        closeStatusModal();
     } finally {
         isUpdating.value = false;
     }
@@ -74,14 +84,14 @@ const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'Php' }).format(amount);
 };
 
-const getStatusBadge = (status) => {
+const getStatusBadgeClass = (status) => {
     const badges = {
-        paid: 'bg-success',
-        pending: 'bg-warning text-dark',
-        failed: 'bg-danger',
-        refunded: 'bg-secondary'
+        paid: 'badge-active',
+        pending: 'badge-warning',
+        failed: 'badge-inactive',
+        refunded: 'badge-muted'
     };
-    return badges[status] || 'bg-dark';
+    return badges[status] || 'badge-muted';
 };
 
 onMounted(() => {
@@ -90,70 +100,58 @@ onMounted(() => {
 </script>
 
 <template>
-  <div>
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h4 class="mb-0"><i class="bi bi-credit-card me-2"></i>Payment Management</h4>
-      <button @click="fetchPayments" class="btn btn-outline-secondary btn-sm" :disabled="isLoading">
-        <i class="bi bi-arrow-clockwise"></i> Refresh
+  <div class="profile-section">
+
+    <div class="ps-header">
+      <h3><i class="ti ti-credit-card"></i> Payment Management</h3>
+      <button @click="fetchPayments" class="btn-refresh" :disabled="isLoading">
+        <i class="ti ti-refresh"></i> Refresh
       </button>
     </div>
 
-    <div v-if="pageError" class="alert alert-danger shadow-sm alert-dismissible fade show py-2 px-3 mb-4">
-      <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ pageError }}
-      <button type="button" class="btn-close btn-sm" @click="pageError = null"></button>
-    </div>
-    <div v-if="successMessage" class="alert alert-success shadow-sm alert-dismissible fade show py-2 px-3 mb-4">
-      <i class="bi bi-check-circle-fill me-2"></i> {{ successMessage }}
-      <button type="button" class="btn-close btn-sm" @click="successMessage = null"></button>
-    </div>
+    <div class="ps-body">
 
-    <div v-if="isLoading" class="text-center py-5">
-      <div class="spinner-border text-primary" role="status"></div>
-    </div>
+      <p v-if="pageError" class="alert-msg alert-error">{{ pageError }}</p>
+      <p v-if="successMessage" class="alert-msg alert-success">{{ successMessage }}</p>
 
-    <div v-else-if="payments.length === 0" class="alert alert-light shadow-sm text-center py-5 border">
-      <i class="bi bi-receipt text-muted d-block fs-1 mb-3"></i>
-      <h6 class="text-secondary">No Payments Found</h6>
-      <p class="text-muted mb-0 small">There are currently no transactions in the system.</p>
-    </div>
+      <div v-if="isLoading" class="admin-loading">
+        <i class="ti ti-loader-2 admin-spinner"></i> Loading payments…
+      </div>
 
-    <div v-else class="card shadow-sm border-0">
-      <div class="table-responsive">
-        <table class="table table-hover table-striped mb-0 align-middle">
-          <thead class="table-dark">
+      <div v-else-if="payments.length === 0" class="admin-empty-state">
+        <i class="ti ti-receipt-off"></i>
+        <p>There are currently no transactions in the system.</p>
+      </div>
+
+      <div v-else class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
             <tr>
-              <th>Transaction ID</th>
+              <th>Transaction</th>
               <th>Date</th>
               <th>Method</th>
               <th>Amount</th>
               <th>Status</th>
-              <th class="text-center">Actions</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="payment in payments" :key="payment._id">
               <td>
-                <span class="fw-bold">{{ payment.transactionId }}</span>
-                <br>
-                <small class="text-muted" title="Booking ID">
-                  <i class="bi bi-link-45deg"></i> {{ payment.bookingId }}
-                </small>
+                {{ payment.transactionId }}
+                <span class="cell-sub" title="Booking ID"><i class="ti ti-link"></i> {{ payment.bookingId }}</span>
               </td>
-              <td>{{ new Date(payment.createdAt).toLocaleString() }}</td>
-              <td class="text-capitalize">{{ payment.paymentMethod }}</td>
-              <td class="fw-bold">{{ formatCurrency(payment.amount) }}</td>
+              <td class="muted">{{ new Date(payment.createdAt).toLocaleString() }}</td>
+              <td class="muted capitalize">{{ payment.paymentMethod }}</td>
+              <td>{{ formatCurrency(payment.amount) }}</td>
               <td>
-                <span class="badge" :class="getStatusBadge(payment.status)">
-                  {{ payment.status.toUpperCase() }}
+                <span class="admin-badge" :class="getStatusBadgeClass(payment.status)">
+                  {{ payment.status }}
                 </span>
               </td>
-              <td class="text-center">
-                <button 
-                  @click="openStatusModal(payment)" 
-                  class="btn btn-outline-primary btn-sm rounded-pill"
-                  data-bs-toggle="modal" 
-                  data-bs-target="#updateStatusModal">
-                  Update Status
+              <td>
+                <button @click="openStatusModal(payment)" class="btn-table-action">
+                  <i class="ti ti-edit"></i> Update Status
                 </button>
               </td>
             </tr>
@@ -162,46 +160,49 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="modal fade" id="updateStatusModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Update Payment Status</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="closeModalBtn"></button>
-          </div>
-          <div class="modal-body" v-if="selectedPayment">
-            
-            <div class="alert alert-info py-2 px-3 small">
-              <strong>Transaction:</strong> {{ selectedPayment.transactionId }}<br>
-              <strong>Amount:</strong> {{ formatCurrency(selectedPayment.amount) }}
-            </div>
+    <!-- Update Status Modal -->
+    <div v-if="selectedPayment" class="admin-modal-overlay" @click.self="closeStatusModal">
+      <div class="admin-modal">
+        <div class="admin-modal-header">
+          <h4><i class="ti ti-credit-card-pay"></i> Update Payment Status</h4>
+          <button class="admin-modal-close" @click="closeStatusModal"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="admin-modal-body">
 
-            <div class="mb-3">
-              <label class="form-label fw-bold">Select New Status</label>
-              <select v-model="newStatus" class="form-select">
-                <option v-for="status in validStatuses" :key="status" :value="status" class="text-capitalize">
-                  {{ status }}
-                </option>
-              </select>
-            </div>
-            
-            <div v-if="newStatus === 'paid' && selectedPayment.status !== 'paid'" class="text-success small mt-2">
-                <i class="bi bi-info-circle me-1"></i>
-                Marking this as paid will automatically confirm the booking and dispatch an email notification to the user.
-            </div>
+          <div class="admin-message-box">
+            <strong>Transaction:</strong> {{ selectedPayment.transactionId }}<br>
+            <strong>Amount:</strong> {{ formatCurrency(selectedPayment.amount) }}
+          </div>
 
+          <label class="f-label">Select New Status</label>
+          <div class="status-option-grid">
+            <div
+              v-for="opt in statusOptions"
+              :key="opt.value"
+              class="status-option-card"
+              :class="{ selected: newStatus === opt.value }"
+              @click="newStatus = opt.value"
+            >
+              <i class="ti" :class="opt.icon"></i>
+              <span class="option-label">{{ opt.label }}</span>
+            </div>
           </div>
-          <div class="modal-footer d-flex justify-content-between">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button 
-                type="button" 
-                class="btn btn-primary" 
-                @click="submitStatusUpdate"
-                :disabled="isUpdating || (selectedPayment && newStatus === selectedPayment.status)">
-              <span v-if="isUpdating" class="spinner-border spinner-border-sm me-2"></span>
-              Save Changes
-            </button>
-          </div>
+
+          <p v-if="newStatus === 'paid' && selectedPayment.status !== 'paid'" class="admin-inline-note note-success">
+            <i class="ti ti-info-circle"></i>
+            Marking this as paid will automatically confirm the booking and dispatch an email notification to the user.
+          </p>
+
+        </div>
+        <div class="admin-modal-footer">
+          <button class="btn-refresh" @click="closeStatusModal">Cancel</button>
+          <button
+            class="btn-gold-full"
+            :disabled="isUpdating || newStatus === selectedPayment.status"
+            @click="submitStatusUpdate"
+          >
+            {{ isUpdating ? 'Saving…' : 'Save Changes' }}
+          </button>
         </div>
       </div>
     </div>
@@ -210,8 +211,5 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Optional: Ensures table doesn't wrap awkwardly on smaller screens */
-.table td, .table th {
-    white-space: nowrap;
-}
+@import './admin-shared.css';
 </style>

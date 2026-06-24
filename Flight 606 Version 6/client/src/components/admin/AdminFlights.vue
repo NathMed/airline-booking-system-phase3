@@ -1,9 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import {
-    getAllFlights, createFlight, updateFlight, deactivateFlight, reactivateFlight,
-    getAllAirlines, getAllAircraft, getAllAirports
-} from '../../api.js';
+import { getAllFlights, createFlight, updateFlight, deactivateFlight, reactivateFlight, getAllAirlines, getAllAircraft, getAllAirports } from '../../api.js';
 
 const flights = ref([]);
 const airlines = ref([]);
@@ -17,32 +14,15 @@ const isSubmitting = ref(false);
 const showCreateForm = ref(false);
 const showEditModal = ref(false);
 
-const emptyForm = () => ({
-    airlineId: '',
-    aircraftId: '',
-    originAirportId: '',
-    destinationAirportId: '',
-    flightNumber: '',
-    departureTime: '',
-    arrivalTime: '',
-    basePrice: '',
-    businessPrice: '',
-    originTerminal: '',
-    destinationTerminal: ''
-});
+const emptyForm = () => ({ airlineId:'', aircraftId:'', originAirportId:'', destinationAirportId:'', flightNumber:'', departureTime:'', arrivalTime:'', basePrice:'', businessPrice:'', originTerminal:'', destinationTerminal:'' });
 
 const form = ref(emptyForm());
 const editForm = ref({ id: null, ...emptyForm(), status: '' });
 
 const statusOptions = ['scheduled', 'delayed', 'on-time', 'cancelled', 'departed', 'arrived'];
 
-// Helper: Append strict +08:00 Philippine Standard Time offset to input fields
-function formatToPHTPayload(localDateTimeString) {
-    if (!localDateTimeString) return null;
-    return `${localDateTimeString}:00+08:00`;
-}
+function formatToPHTPayload(dt) { return dt ? `${dt}:00+08:00` : null; }
 
-// Helper: Convert a saved DB string back into matching local YYYY-MM-DDTHH:mm for inputs using Asia/Manila
 function convertToPHTInputString(dt) {
     if (!dt) return '';
     const date = new Date(dt);
@@ -53,56 +33,38 @@ function convertToPHTInputString(dt) {
 
 function formatDateTime(dt) {
     if (!dt) return '—';
-    return new Date(dt).toLocaleString('en-PH', {
-        timeZone: 'Asia/Manila', // Enforce Philippine Standard Time on table views
-        month: 'short', day: 'numeric', year: 'numeric',
-        hour: '2-digit', minute: '2-digit'
-    });
+    return new Date(dt).toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 function calcTravelTime(departure, arrival) {
     if (!departure || !arrival) return '—';
     const diff = new Date(arrival) - new Date(departure);
     if (diff <= 0) return '—';
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    return `${hours}h ${minutes}m`;
+    return `${Math.floor(diff / 3600000)}h ${Math.floor((diff % 3600000) / 60000)}m`;
 }
 
 function getLabel(list, id, field = 'name') {
-    if (!list || !Array.isArray(list)) return '—';
-    const found = list.find(i => String(i._id) === String(id));
+    const found = list?.find(i => String(i._id) === String(id));
     return found ? found[field] : '—';
 }
 
 function getAirportCode(id) {
-    if (!airports.value || !Array.isArray(airports.value)) return '—';
-    const found = airports.value.find(i => String(i._id) === String(id));
+    const found = airports.value?.find(i => String(i._id) === String(id));
     return found ? found.iataCode : '—';
+}
+
+function flightStatusBadge(status) {
+    const map = { scheduled:'badge-scheduled', delayed:'badge-delayed', 'on-time':'badge-on-time', cancelled:'badge-cancelled', departed:'badge-departed', arrived:'badge-arrived' };
+    return map[status] || 'badge-muted';
 }
 
 async function loadData() {
     try {
         isLoading.value = true;
-        const [flightsRes, airlinesRes, aircraftRes, airportsRes] = await Promise.allSettled([
-            getAllFlights(),
-            getAllAirlines(),
-            getAllAircraft(),
-            getAllAirports()
-        ]);
-        if (flightsRes.status === 'fulfilled') {
-            flights.value = flightsRes.value.result || flightsRes.value.flights || [];
-        }
-        if (airlinesRes.status === 'fulfilled') {
-            airlines.value = airlinesRes.value.result.filter(a => a.isActive);
-        } else {
-            airlines.value = [];
-        }
-        if (aircraftRes.status === 'fulfilled') {
-            aircraft.value = aircraftRes.value.result.filter(a => a.isActive);
-        } else {
-            aircraft.value = [];
-        }
+        const [flightsRes, airlinesRes, aircraftRes, airportsRes] = await Promise.allSettled([getAllFlights(), getAllAirlines(), getAllAircraft(), getAllAirports()]);
+        if (flightsRes.status === 'fulfilled') flights.value = flightsRes.value.result || flightsRes.value.flights || [];
+        if (airlinesRes.status === 'fulfilled') airlines.value = airlinesRes.value.result.filter(a => a.isActive);
+        if (aircraftRes.status === 'fulfilled') aircraft.value = aircraftRes.value.result.filter(a => a.isActive);
         if (airportsRes.status === 'fulfilled') airports.value = airportsRes.value.result.filter(a => a.isActive);
     } catch (err) {
         errorMessage.value = err.response?.data?.message || 'Failed to load data.';
@@ -120,39 +82,20 @@ function validateForm(f) {
     if (!f.flightNumber.trim()) return 'Flight number is required.';
     if (!f.departureTime) return 'Departure time is required.';
     if (!f.arrivalTime) return 'Arrival time is required.';
-    
-    // Evaluate timestamps cleanly against explicit PHT offsets for accurate temporal checking
-    if (new Date(formatToPHTPayload(f.arrivalTime)) <= new Date(formatToPHTPayload(f.departureTime))) {
-        return 'Arrival time must be after departure time.';
-    }
-    
+    if (new Date(formatToPHTPayload(f.arrivalTime)) <= new Date(formatToPHTPayload(f.departureTime))) return 'Arrival must be after departure.';
     if (!f.basePrice || f.basePrice <= 0) return 'Economy price must be a positive number.';
     if (!f.businessPrice || f.businessPrice <= 0) return 'Business price must be a positive number.';
-    if (Number(f.businessPrice) <= Number(f.basePrice)) return 'Business class price must be greater than economy price.';
+    if (Number(f.businessPrice) <= Number(f.basePrice)) return 'Business price must be greater than economy price.';
     return null;
 }
 
 async function handleCreate() {
-    errorMessage.value = '';
-    successMessage.value = '';
+    errorMessage.value = ''; successMessage.value = '';
     const err = validateForm(form.value);
     if (err) { errorMessage.value = err; return; }
-
     try {
         isSubmitting.value = true;
-        await createFlight({
-            airlineId: form.value.airlineId,
-            aircraftId: form.value.aircraftId,
-            originAirportId: form.value.originAirportId,
-            destinationAirportId: form.value.destinationAirportId,
-            flightNumber: form.value.flightNumber,
-            departureTime: formatToPHTPayload(form.value.departureTime),
-            arrivalTime: formatToPHTPayload(form.value.arrivalTime),
-            basePrice: Number(form.value.basePrice),
-            businessPrice: Number(form.value.businessPrice),
-            originTerminal: form.value.originTerminal || null,
-            destinationTerminal: form.value.destinationTerminal || null
-        });
+        await createFlight({ airlineId:form.value.airlineId, aircraftId:form.value.aircraftId, originAirportId:form.value.originAirportId, destinationAirportId:form.value.destinationAirportId, flightNumber:form.value.flightNumber, departureTime:formatToPHTPayload(form.value.departureTime), arrivalTime:formatToPHTPayload(form.value.arrivalTime), basePrice:Number(form.value.basePrice), businessPrice:Number(form.value.businessPrice), originTerminal:form.value.originTerminal||null, destinationTerminal:form.value.destinationTerminal||null });
         successMessage.value = 'Flight created successfully.';
         form.value = emptyForm();
         showCreateForm.value = false;
@@ -165,51 +108,19 @@ async function handleCreate() {
 }
 
 function openEditModal(flight) {
-    editForm.value = {
-        id: flight._id,
-        airlineId: flight.airlineId,
-        aircraftId: flight.aircraftId,
-        originAirportId: flight.originAirportId,
-        destinationAirportId: flight.destinationAirportId,
-        flightNumber: flight.flightNumber,
-        departureTime: convertToPHTInputString(flight.departureTime),
-        arrivalTime: convertToPHTInputString(flight.arrivalTime),
-        basePrice: flight.basePrice,
-        businessPrice: flight.businessPrice,
-        originTerminal: flight.originTerminal || '',
-        destinationTerminal: flight.destinationTerminal || '',
-        status: flight.status
-    };
+    editForm.value = { id:flight._id, airlineId:flight.airlineId, aircraftId:flight.aircraftId, originAirportId:flight.originAirportId, destinationAirportId:flight.destinationAirportId, flightNumber:flight.flightNumber, departureTime:convertToPHTInputString(flight.departureTime), arrivalTime:convertToPHTInputString(flight.arrivalTime), basePrice:flight.basePrice, businessPrice:flight.businessPrice, originTerminal:flight.originTerminal||'', destinationTerminal:flight.destinationTerminal||'', status:flight.status };
     showEditModal.value = true;
 }
 
-function closeEditModal() {
-    showEditModal.value = false;
-    editForm.value = { id: null, ...emptyForm(), status: '' };
-}
+function closeEditModal() { showEditModal.value = false; editForm.value = { id:null, ...emptyForm(), status:'' }; }
 
 async function handleEdit() {
-    errorMessage.value = '';
-    successMessage.value = '';
+    errorMessage.value = ''; successMessage.value = '';
     const err = validateForm(editForm.value);
     if (err) { errorMessage.value = err; return; }
-
     try {
         isSubmitting.value = true;
-        await updateFlight(editForm.value.id, {
-            airlineId: editForm.value.airlineId,
-            aircraftId: editForm.value.aircraftId,
-            originAirportId: editForm.value.originAirportId,
-            destinationAirportId: editForm.value.destinationAirportId,
-            flightNumber: editForm.value.flightNumber,
-            departureTime: formatToPHTPayload(editForm.value.departureTime),
-            arrivalTime: formatToPHTPayload(editForm.value.arrivalTime),
-            basePrice: Number(editForm.value.basePrice),
-            businessPrice: Number(editForm.value.businessPrice),
-            originTerminal: editForm.value.originTerminal || null,
-            destinationTerminal: editForm.value.destinationTerminal || null,
-            status: editForm.value.status
-        });
+        await updateFlight(editForm.value.id, { airlineId:editForm.value.airlineId, aircraftId:editForm.value.aircraftId, originAirportId:editForm.value.originAirportId, destinationAirportId:editForm.value.destinationAirportId, flightNumber:editForm.value.flightNumber, departureTime:formatToPHTPayload(editForm.value.departureTime), arrivalTime:formatToPHTPayload(editForm.value.arrivalTime), basePrice:Number(editForm.value.basePrice), businessPrice:Number(editForm.value.businessPrice), originTerminal:editForm.value.originTerminal||null, destinationTerminal:editForm.value.destinationTerminal||null, status:editForm.value.status });
         successMessage.value = 'Flight updated successfully.';
         closeEditModal();
         await loadData();
@@ -221,272 +132,244 @@ async function handleEdit() {
 }
 
 async function toggleStatus(flight) {
-    errorMessage.value = '';
-    successMessage.value = '';
+    errorMessage.value = ''; successMessage.value = '';
     try {
-        if (flight.isActive) {
-            await deactivateFlight(flight._id);
-        } else {
-            await reactivateFlight(flight._id);
-        }
+        flight.isActive ? await deactivateFlight(flight._id) : await reactivateFlight(flight._id);
         await loadData();
     } catch (err) {
         errorMessage.value = err.response?.data?.message || 'Failed to update flight status.';
     }
 }
 
-function statusBadgeClass(status) {
-    const map = {
-        scheduled: 'bg-primary',
-        delayed: 'bg-warning text-dark',
-        'on-time': 'bg-success',
-        cancelled: 'bg-danger',
-        departed: 'bg-info text-dark',
-        arrived: 'bg-secondary'
-    };
-    return map[status] || 'bg-secondary';
-}
-
 onMounted(loadData);
 </script>
 
 <template>
-    <div>
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Flights</h2>
-            <button class="btn btn-primary" @click="showCreateForm = !showCreateForm">
+    <div class="profile-section">
+
+        <div class="ps-header">
+            <h3>Flights</h3>
+            <button class="btn-outline-gold" @click="showCreateForm = !showCreateForm">
+                <i class="ti" :class="showCreateForm ? 'ti-x' : 'ti-plus'"></i>
                 {{ showCreateForm ? 'Cancel' : 'Create Flight' }}
             </button>
         </div>
 
-        <div v-if="successMessage" class="alert alert-success">{{ successMessage }}</div>
-        <div v-if="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+        <div class="ps-body">
 
-        <div v-if="showCreateForm" class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title mb-3">New Flight</h5>
+            <p v-if="successMessage" class="alert-msg alert-success">{{ successMessage }}</p>
+            <p v-if="errorMessage" class="alert-msg alert-error">{{ errorMessage }}</p>
+
+            <!-- Create Form -->
+            <div v-if="showCreateForm" class="admin-form-panel">
+                <p class="admin-form-eyebrow">New Flight</p>
                 <form @submit.prevent="handleCreate">
-                    <div class="row">
-
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Airline</label>
-                            <select v-model="form.airlineId" class="form-select" required>
+                    <div class="admin-form-grid admin-form-grid-3">
+                        <div>
+                            <label class="f-label">Airline</label>
+                            <select v-model="form.airlineId" class="f-input">
                                 <option value="" disabled>Select airline</option>
                                 <option v-for="a in airlines" :key="a._id" :value="a._id">{{ a.name }}</option>
                             </select>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Aircraft</label>
-                            <select v-model="form.aircraftId" class="form-select" required>
+                        <div>
+                            <label class="f-label">Aircraft</label>
+                            <select v-model="form.aircraftId" class="f-input">
                                 <option value="" disabled>Select aircraft</option>
                                 <option v-for="a in aircraft" :key="a._id" :value="a._id">{{ a.model }}</option>
                             </select>
                         </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Origin Airport</label>
-                            <select v-model="form.originAirportId" class="form-select" required>
+                        <div>
+                            <label class="f-label">Flight Number</label>
+                            <input v-model="form.flightNumber" type="text" class="f-input" placeholder="e.g. JL782" />
+                        </div>
+                        <div>
+                            <label class="f-label">Origin Airport</label>
+                            <select v-model="form.originAirportId" class="f-input">
                                 <option value="" disabled>Select origin</option>
                                 <option v-for="a in airports" :key="a._id" :value="a._id">{{ a.iataCode }} — {{ a.city }}</option>
                             </select>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Destination Airport</label>
-                            <select v-model="form.destinationAirportId" class="form-select" required>
+                        <div>
+                            <label class="f-label">Destination Airport</label>
+                            <select v-model="form.destinationAirportId" class="f-input">
                                 <option value="" disabled>Select destination</option>
                                 <option v-for="a in airports" :key="a._id" :value="a._id">{{ a.iataCode }} — {{ a.city }}</option>
                             </select>
                         </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Origin Terminal <span class="text-muted">(optional)</span></label>
-                            <input v-model="form.originTerminal" type="text" class="form-control" placeholder="e.g. T1" />
+                        <div>
+                            <label class="f-label">Origin Terminal <span style="text-transform:none; font-weight:400;">(optional)</span></label>
+                            <input v-model="form.originTerminal" type="text" class="f-input" placeholder="e.g. T1" />
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Destination Terminal <span class="text-muted">(optional)</span></label>
-                            <input v-model="form.destinationTerminal" type="text" class="form-control" placeholder="e.g. T3" />
+                        <div>
+                            <label class="f-label">Destination Terminal <span style="text-transform:none; font-weight:400;">(optional)</span></label>
+                            <input v-model="form.destinationTerminal" type="text" class="f-input" placeholder="e.g. T3" />
                         </div>
-
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Flight Number</label>
-                            <input v-model="form.flightNumber" type="text" class="form-control" placeholder="e.g. JL782" required />
+                        <div>
+                            <label class="f-label">Departure Time</label>
+                            <input v-model="form.departureTime" type="datetime-local" class="f-input" />
+                            <p v-if="form.departureTime" class="pht-preview">PHT: {{ formatDateTime(formatToPHTPayload(form.departureTime)) }}</p>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Departure Time</label>
-                            <input v-model="form.departureTime" type="datetime-local" class="form-control" required />
-                            <div v-if="form.departureTime" class="form-text text-success fw-bold small mt-1">
-                                PHT Preview: {{ formatDateTime(formatToPHTPayload(form.departureTime)) }}
-                            </div>
+                        <div>
+                            <label class="f-label">Arrival Time</label>
+                            <input v-model="form.arrivalTime" type="datetime-local" class="f-input" />
+                            <p v-if="form.arrivalTime" class="pht-preview">PHT: {{ formatDateTime(formatToPHTPayload(form.arrivalTime)) }}</p>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Arrival Time</label>
-                            <input v-model="form.arrivalTime" type="datetime-local" class="form-control" required />
-                            <div v-if="form.arrivalTime" class="form-text text-success fw-bold small mt-1">
-                                PHT Preview: {{ formatDateTime(formatToPHTPayload(form.arrivalTime)) }}
-                            </div>
+                        <div>
+                            <label class="f-label">Economy Price (₱)</label>
+                            <input v-model="form.basePrice" type="number" class="f-input" min="1" placeholder="e.g. 5000" />
                         </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Economy Price (₱)</label>
-                            <input v-model="form.basePrice" type="number" class="form-control" min="1" placeholder="e.g. 5000" required />
+                        <div>
+                            <label class="f-label">Business Price (₱)</label>
+                            <input v-model="form.businessPrice" type="number" class="f-input" min="1" placeholder="e.g. 10000" />
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Business Price (₱)</label>
-                            <input v-model="form.businessPrice" type="number" class="form-control" min="1" placeholder="e.g. 10000" required />
-                        </div>
-
                     </div>
-                    <button type="submit" class="btn btn-success" :disabled="isSubmitting">
-                        {{ isSubmitting ? 'Saving...' : 'Save Flight' }}
+                    <button type="submit" class="btn-gold-full" style="margin-top:20px;" :disabled="isSubmitting">
+                        {{ isSubmitting ? 'Saving…' : 'Save Flight' }}
                     </button>
                 </form>
             </div>
+
+            <div v-if="isLoading" class="admin-loading">
+                <i class="ti ti-loader-2 admin-spinner"></i> Loading…
+            </div>
+
+            <div v-else class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Flight No.</th>
+                            <th>Airline</th>
+                            <th>Route</th>
+                            <th>Departure</th>
+                            <th>Travel Time</th>
+                            <th>Economy</th>
+                            <th>Business</th>
+                            <th>Status</th>
+                            <th>Active</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-if="flights.length === 0">
+                            <td colspan="10" class="admin-empty-row">No flights found.</td>
+                        </tr>
+                        <tr v-for="flight in flights" :key="flight._id">
+                            <td><strong>{{ flight.flightNumber }}</strong></td>
+                            <td>{{ getLabel(airlines, flight.airlineId) }}</td>
+                            <td>
+                                <span class="route-display">
+                                    {{ getAirportCode(flight.originAirportId) }}
+                                    <i class="ti ti-arrow-right route-arrow"></i>
+                                    {{ getAirportCode(flight.destinationAirportId) }}
+                                </span>
+                            </td>
+                            <td style="white-space:nowrap;">{{ formatDateTime(flight.departureTime) }}</td>
+                            <td>{{ calcTravelTime(flight.departureTime, flight.arrivalTime) }}</td>
+                            <td>₱{{ flight.basePrice.toLocaleString() }}</td>
+                            <td>₱{{ flight.businessPrice.toLocaleString() }}</td>
+                            <td>
+                                <span class="admin-badge" :class="flightStatusBadge(flight.status)">{{ flight.status }}</span>
+                            </td>
+                            <td>
+                                <span class="admin-badge" :class="flight.isActive ? 'badge-active' : 'badge-inactive'">
+                                    {{ flight.isActive ? 'Active' : 'Inactive' }}
+                                </span>
+                            </td>
+                            <td class="admin-actions-cell">
+                                <button class="btn-table-action" @click="openEditModal(flight)"><i class="ti ti-pencil"></i> Edit</button>
+                                <button class="btn-table-action" :class="flight.isActive ? 'btn-table-danger' : 'btn-table-success'" @click="toggleStatus(flight)">
+                                    {{ flight.isActive ? 'Deactivate' : 'Reactivate' }}
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <div v-if="isLoading" class="text-center py-5">
-            <div class="spinner-border" role="status"></div>
-        </div>
-
-        <div v-else class="table-responsive">
-            <table class="table table-bordered table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Flight No.</th>
-                        <th>Airline</th>
-                        <th>Route</th>
-                        <th>Departure</th>
-                        <th>Arrival</th>
-                        <th>Travel Time</th>
-                        <th>Economy (₱)</th>
-                        <th>Business (₱)</th>
-                        <th>Flight Status</th>
-                        <th>Active</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-if="flights.length === 0">
-                        <td colspan="11" class="text-center">No flights found.</td>
-                    </tr>
-                    <tr v-for="flight in flights" :key="flight._id">
-                        <td>{{ flight.flightNumber }}</td>
-                        <td>{{ getLabel(airlines, flight.airlineId) }}</td>
-                        <td>{{ getAirportCode(flight.originAirportId) }} → {{ getAirportCode(flight.destinationAirportId) }}</td>
-                        <td>{{ formatDateTime(flight.departureTime) }}</td>
-                        <td>{{ formatDateTime(flight.arrivalTime) }}</td>
-                        <td>{{ calcTravelTime(flight.departureTime, flight.arrivalTime) }}</td>
-                        <td>₱{{ flight.basePrice.toLocaleString() }}</td>
-                        <td>₱{{ flight.businessPrice.toLocaleString() }}</td>
-                        <td>
-                            <span class="badge" :class="statusBadgeClass(flight.status)">
-                                {{ flight.status }}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge" :class="flight.isActive ? 'bg-success' : 'bg-danger'">
-                                {{ flight.isActive ? 'Active' : 'Inactive' }}
-                            </span>
-                        </td>
-                        <td>
-                            <button class="btn btn-sm btn-warning me-2" @click="openEditModal(flight)">Edit</button>
-                            <button
-                                class="btn btn-sm"
-                                :class="flight.isActive ? 'btn-danger' : 'btn-success'"
-                                @click="toggleStatus(flight)"
-                            >
-                                {{ flight.isActive ? 'Deactivate' : 'Reactivate' }}
-                            </button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div v-if="showEditModal" class="modal d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Edit Flight</h5>
-                        <button type="button" class="btn-close" @click="closeEditModal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Airline</label>
-                                <select v-model="editForm.airlineId" class="form-select">
-                                    <option value="" disabled>Select airline</option>
-                                    <option v-for="a in airlines" :key="a._id" :value="a._id">{{ a.name }}</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Aircraft</label>
-                                <select v-model="editForm.aircraftId" class="form-select">
-                                    <option value="" disabled>Select aircraft</option>
-                                    <option v-for="a in aircraft" :key="a._id" :value="a._id">{{ a.model }}</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Origin Airport</label>
-                                <select v-model="editForm.originAirportId" class="form-select">
-                                    <option value="" disabled>Select origin</option>
-                                    <option v-for="a in airports" :key="a._id" :value="a._id">{{ a.iataCode }} — {{ a.city }}</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Destination Airport</label>
-                                <select v-model="editForm.destinationAirportId" class="form-select">
-                                    <option value="" disabled>Select destination</option>
-                                    <option v-for="a in airports" :key="a._id" :value="a._id">{{ a.iataCode }} — {{ a.city }}</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Origin Terminal</label>
-                                <input v-model="editForm.originTerminal" type="text" class="form-control" placeholder="e.g. T1" />
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Destination Terminal</label>
-                                <input v-model="editForm.destinationTerminal" type="text" class="form-control" placeholder="e.g. T3" />
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Flight Number</label>
-                                <input v-model="editForm.flightNumber" type="text" class="form-control" />
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Departure Time</label>
-                                <input v-model="editForm.departureTime" type="datetime-local" class="form-control" />
-                                <div v-if="editForm.departureTime" class="form-text text-success fw-bold small mt-1">
-                                    PHT Preview: {{ formatDateTime(formatToPHTPayload(editForm.departureTime)) }}
-                                </div>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Arrival Time</label>
-                                <input v-model="editForm.arrivalTime" type="datetime-local" class="form-control" />
-                                <div v-if="editForm.arrivalTime" class="form-text text-success fw-bold small mt-1">
-                                    PHT Preview: {{ formatDateTime(formatToPHTPayload(editForm.arrivalTime)) }}
-                                </div>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Economy Price (₱)</label>
-                                <input v-model="editForm.basePrice" type="number" min="1" class="form-control" />
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Business Price (₱)</label>
-                                <input v-model="editForm.businessPrice" type="number" min="1" class="form-control" />
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Status</label>
-                                <select v-model="editForm.status" class="form-select">
-                                    <option v-for="s in statusOptions" :key="s" :value="s">{{ s }}</option>
-                                </select>
-                            </div>
+        <!-- Edit Modal -->
+        <div v-if="showEditModal" class="admin-modal-overlay" @click.self="closeEditModal">
+            <div class="admin-modal admin-modal-lg">
+                <div class="admin-modal-header">
+                    <h4>Edit Flight</h4>
+                    <button class="admin-modal-close" @click="closeEditModal"><i class="ti ti-x"></i></button>
+                </div>
+                <div class="admin-modal-body">
+                    <div class="admin-form-grid admin-form-grid-3">
+                        <div>
+                            <label class="f-label">Airline</label>
+                            <select v-model="editForm.airlineId" class="f-input">
+                                <option value="" disabled>Select airline</option>
+                                <option v-for="a in airlines" :key="a._id" :value="a._id">{{ a.name }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="f-label">Aircraft</label>
+                            <select v-model="editForm.aircraftId" class="f-input">
+                                <option value="" disabled>Select aircraft</option>
+                                <option v-for="a in aircraft" :key="a._id" :value="a._id">{{ a.model }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="f-label">Flight Number</label>
+                            <input v-model="editForm.flightNumber" type="text" class="f-input" />
+                        </div>
+                        <div>
+                            <label class="f-label">Origin Airport</label>
+                            <select v-model="editForm.originAirportId" class="f-input">
+                                <option value="" disabled>Select origin</option>
+                                <option v-for="a in airports" :key="a._id" :value="a._id">{{ a.iataCode }} — {{ a.city }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="f-label">Destination Airport</label>
+                            <select v-model="editForm.destinationAirportId" class="f-input">
+                                <option value="" disabled>Select destination</option>
+                                <option v-for="a in airports" :key="a._id" :value="a._id">{{ a.iataCode }} — {{ a.city }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="f-label">Status</label>
+                            <select v-model="editForm.status" class="f-input">
+                                <option v-for="s in statusOptions" :key="s" :value="s">{{ s }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="f-label">Origin Terminal</label>
+                            <input v-model="editForm.originTerminal" type="text" class="f-input" placeholder="e.g. T1" />
+                        </div>
+                        <div>
+                            <label class="f-label">Destination Terminal</label>
+                            <input v-model="editForm.destinationTerminal" type="text" class="f-input" placeholder="e.g. T3" />
+                        </div>
+                        <div><!-- spacer --></div>
+                        <div>
+                            <label class="f-label">Departure Time</label>
+                            <input v-model="editForm.departureTime" type="datetime-local" class="f-input" />
+                            <p v-if="editForm.departureTime" class="pht-preview">PHT: {{ formatDateTime(formatToPHTPayload(editForm.departureTime)) }}</p>
+                        </div>
+                        <div>
+                            <label class="f-label">Arrival Time</label>
+                            <input v-model="editForm.arrivalTime" type="datetime-local" class="f-input" />
+                            <p v-if="editForm.arrivalTime" class="pht-preview">PHT: {{ formatDateTime(formatToPHTPayload(editForm.arrivalTime)) }}</p>
+                        </div>
+                        <div><!-- spacer --></div>
+                        <div>
+                            <label class="f-label">Economy Price (₱)</label>
+                            <input v-model="editForm.basePrice" type="number" min="1" class="f-input" />
+                        </div>
+                        <div>
+                            <label class="f-label">Business Price (₱)</label>
+                            <input v-model="editForm.businessPrice" type="number" min="1" class="f-input" />
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-secondary" @click="closeEditModal">Cancel</button>
-                        <button class="btn btn-primary" :disabled="isSubmitting" @click="handleEdit">
-                            {{ isSubmitting ? 'Saving...' : 'Save Changes' }}
-                        </button>
-                    </div>
+                </div>
+                <div class="admin-modal-footer">
+                    <button class="btn-table-action" @click="closeEditModal">Cancel</button>
+                    <button class="btn-gold-full" :disabled="isSubmitting" @click="handleEdit" style="width:auto; padding: 10px 28px;">
+                        {{ isSubmitting ? 'Saving…' : 'Save Changes' }}
+                    </button>
                 </div>
             </div>
         </div>
@@ -495,7 +378,27 @@ onMounted(loadData);
 </template>
 
 <style scoped>
-.form-text {
-    font-size: 0.825rem;
+@import './admin-shared.css';
+
+.admin-form-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 768px) { .admin-form-grid-3 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 480px) { .admin-form-grid-3 { grid-template-columns: 1fr; } }
+
+.pht-preview {
+  font-family: var(--font-sans);
+  font-size: 0.66rem;
+  color: var(--success);
+  font-weight: 700;
+  margin: 5px 0 0;
 }
+
+.route-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+.route-arrow { color: var(--gold); font-size: 0.8rem; }
 </style>
