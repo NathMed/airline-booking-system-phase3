@@ -1,13 +1,14 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import CalendarPicker from './CalendarPicker.vue'
 import { getAllAirports } from '../api.js'
 
 const router = useRouter()
 
-// ── Live airport data (replaces the old static MNL/CEB option lists) ──
+// ── Live airport data ──────────────────────────────────────────────────────
 const airports = ref([])
+
 onMounted(async () => {
   try {
     const res = await getAllAirports()
@@ -15,94 +16,118 @@ onMounted(async () => {
     if (airports.value.length > 0) {
       fromVal.value = airports.value[0]._id
       if (airports.value[1]) toVal.value = airports.value[1]._id
+      // Pre-fill the first two multi-city rows with real airport IDs
+      if (mcRows.value[0]) mcRows.value[0].from = airports.value[0]._id
+      if (mcRows.value[0] && airports.value[1]) mcRows.value[0].to = airports.value[1]._id
+      if (mcRows.value[1] && airports.value[1]) mcRows.value[1].from = airports.value[1]._id
+      if (mcRows.value[1] && airports.value[0]) mcRows.value[1].to = airports.value[0]._id
     }
   } catch (err) {
     console.error('Failed to load airports for the booking widget:', err)
   }
 })
 
-// ── Tabs ───────────────────────────────────────────
-const activeTab  = ref('buy')  // 'buy' | 'status'
+// ── Tabs ───────────────────────────────────────────────────────────────────
+const activeTab = ref('buy')   // 'buy' | 'status'
 
-// ── Trip mode ──────────────────────────────────────
-const tripMode   = ref('one')  // 'one' | 'round' | 'multi'
+// ── Trip mode ──────────────────────────────────────────────────────────────
+const tripMode  = ref('one')   // 'one' | 'round' | 'multi'
 
-// ── Date models ───────────────────────────────────
-const depDate    = ref('')
-const rtDepDate  = ref('')
-const rtRetDate  = ref('')
-const stDate     = ref('')
+// ── Date models ────────────────────────────────────────────────────────────
+const depDate   = ref('')      // one-way departure
+const rtDepDate = ref('')      // round-trip departure
+const rtRetDate = ref('')      // round-trip return
+const stDate    = ref('')      // flight-status date
 
-// ── Field values (now store real Airport _ids once loaded above) ──
-const fromVal    = ref('')
-const toVal      = ref('')
-const paxVal     = ref('2 Adults')
+// ── Form values ────────────────────────────────────────────────────────────
+const fromVal   = ref('')
+const toVal     = ref('')
+const paxVal    = ref('2 Adults')
 
+// ── Validation ─────────────────────────────────────────────────────────────
+const isBookDisabled = computed(() => {
+  if (tripMode.value === 'multi') {
+    // Every multi-city row must have from, to, and a date
+    return mcRows.value.some(r => !r.from || !r.to || !r.date)
+  }
+  if (!fromVal.value || !toVal.value) return true
+  if (tripMode.value === 'one')   return !depDate.value
+  if (tripMode.value === 'round') return !rtDepDate.value || !rtRetDate.value || rtRetDate.value <= rtDepDate.value
+  return true
+})
+
+// ── Navigate to SearchFlightsPage ──────────────────────────────────────────
+// Mirrors exactly what SearchFlightsPage.vue reads from route.query on mount.
 function goToSearch() {
-  if (tripMode.value === 'multi') return
-  const date = tripMode.value === 'round' ? rtDepDate.value : depDate.value
-  if (!fromVal.value || !toVal.value || !date) return
+  if (isBookDisabled.value) return
+
+  if (tripMode.value === 'multi') {
+    // Multi-city: chain the legs by navigating with the first leg's params.
+    // SearchFlightsPage handles one or two legs; for true multi we pass the
+    // first two as outbound + return so the user can at least see those results.
+    // Full multi-city search is a future feature.
+    const first = mcRows.value[0]
+    router.push({
+      name: 'SearchFlights',
+      query: {
+        from: first.from,
+        to:   first.to,
+        date: first.date,
+        type: 'oneway',
+        pax:  paxVal.value
+      }
+    })
+    return
+  }
+
+  const query = {
+    from: fromVal.value,
+    to:   toVal.value,
+    date: tripMode.value === 'round' ? rtDepDate.value : depDate.value,
+    type: tripMode.value === 'round' ? 'roundtrip' : 'oneway',
+    pax:  paxVal.value
+  }
+
+  // Pass returnDate so SearchFlightsPage can auto-fill it and fire both legs
+  if (tripMode.value === 'round') {
+    query.returnDate = rtRetDate.value
+  }
+
+  router.push({ name: 'SearchFlights', query })
+}
+
+// ── Flight status lookup ───────────────────────────────────────────────────
+const flightNumberQuery = ref('')
+function goToFlightStatus() {
+  if (!flightNumberQuery.value.trim()) return
   router.push({
-    name: 'SearchFlights',
+    name: 'FlightStatus',
     query: {
-      from: fromVal.value,
-      to: toVal.value,
-      date,
-      type: tripMode.value === 'round' ? 'roundtrip' : 'oneway'
+      flightNumber: flightNumberQuery.value.trim(),
+      ...(stDate.value ? { date: stDate.value } : {})
     }
   })
 }
 
-const isBookDisabled = () => {
-  if (tripMode.value === 'multi') return true
-  const date = tripMode.value === 'round' ? rtDepDate.value : depDate.value
-  return !fromVal.value || !toVal.value || !date
-}
-
-// ── Flight status lookup ───────────────────────────
-const flightNumberQuery = ref('')
-function goToFlightStatus() {
-  if (!flightNumberQuery.value.trim()) return
-  router.push({ name: 'FlightStatus', query: { flightNumber: flightNumberQuery.value.trim() } })
-}
-
-// ── Multi-city rows ────────────────────────────────
+// ── Multi-city rows ────────────────────────────────────────────────────────
+// IDs start empty — onMounted fills them with real airport _ids once loaded
 const mcRows = ref([
-  { id: 1, from: 'MNL', to: 'MLE', date: '' },
-  { id: 2, from: 'CEB', to: 'CDG', date: '' },
+  { id: 1, from: '', to: '', date: '' },
+  { id: 2, from: '', to: '', date: '' },
 ])
 let mcNextId = 3
 
 function addMcRow() {
   if (mcRows.value.length >= 5) return
-  mcRows.value.push({ id: mcNextId++, from: '', to: '', date: '' })
+  // Pre-fill from = last row's "to" as a convenience
+  const last = mcRows.value[mcRows.value.length - 1]
+  mcRows.value.push({ id: mcNextId++, from: last?.to || '', to: '', date: '' })
 }
 
 function removeMcRow(id) {
+  if (mcRows.value.length <= 2) return   // keep at least 2 rows
   mcRows.value = mcRows.value.filter(r => r.id !== id)
 }
-
-const MC_AIRPORTS = [
-  { value: '',    label: 'Select Departure…' },
-  { value: 'MNL', label: 'Manila (MNL)' },
-  { value: 'CEB', label: 'Cebu (CEB)' },
-  { value: 'DVO', label: 'Davao (DVO)' },
-  { value: 'SIN', label: 'Singapore (SIN)' },
-  { value: 'TYO', label: 'Tokyo (TYO)' },
-  { value: 'DXB', label: 'Dubai (DXB)' },
-]
-
-const MC_DESTS = [
-  { value: '',    label: 'Select Destination…' },
-  { value: 'CDG', label: 'Paris (CDG)' },
-  { value: 'NRT', label: 'Tokyo (NRT)' },
-  { value: 'MLE', label: 'Maldives (MLE)' },
-  { value: 'GVA', label: 'Geneva (GVA)' },
-  { value: 'JFK', label: 'New York (JFK)' },
-  { value: 'DXB', label: 'Dubai (DXB)' },
-  { value: 'MNL', label: 'Manila (MNL)' },
-  { value: 'CEB', label: 'Cebu (CEB)' },
-]
 </script>
 
 <template>
@@ -124,8 +149,12 @@ const MC_DESTS = [
       </div>
       <button
         class="btn-gold"
-        :disabled="isBookDisabled()"
-        :title="tripMode === 'multi' ? 'Multi-city search isn\'t available yet — try one-way or round-trip.' : ''"
+        :disabled="isBookDisabled"
+        :title="tripMode === 'round' && rtRetDate && rtRetDate <= rtDepDate
+          ? 'Return date must be after departure date.'
+          : tripMode === 'multi' && mcRows.some(r => !r.from || !r.to || !r.date)
+            ? 'Please fill in all flight legs.'
+            : ''"
         @click="goToSearch"
       >Book Now</button>
     </div>
@@ -203,6 +232,9 @@ const MC_DESTS = [
         <div class="w-field" style="position:relative; overflow:visible;">
           <label class="w-flabel"><i class="ti ti-calendar-event"></i> Return</label>
           <CalendarPicker v-model="rtRetDate" placeholder="Select date…" :align-right="true" :min-date="rtDepDate" />
+          <small v-if="rtRetDate && rtRetDate <= rtDepDate" style="color:#ff4d4d; font-size:0.72rem;">
+            Must be after departure
+          </small>
         </div>
         <div class="w-field">
           <label class="w-flabel"><i class="ti ti-users"></i> Passengers</label>
@@ -226,13 +258,15 @@ const MC_DESTS = [
           <div class="w-field">
             <label class="w-flabel"><i class="ti ti-plane-departure"></i> From</label>
             <select class="w-sel" v-model="row.from">
-              <option v-for="a in MC_AIRPORTS" :key="a.value" :value="a.value">{{ a.label }}</option>
+              <option value="">Select Departure…</option>
+              <option v-for="a in airports" :key="a._id" :value="a._id">{{ a.city }} ({{ a.iataCode }})</option>
             </select>
           </div>
           <div class="w-field">
             <label class="w-flabel"><i class="ti ti-plane-arrival"></i> To</label>
             <select class="w-sel" v-model="row.to">
-              <option v-for="d in MC_DESTS" :key="d.value" :value="d.value">{{ d.label }}</option>
+              <option value="">Select Destination…</option>
+              <option v-for="a in airports" :key="a._id" :value="a._id">{{ a.city }} ({{ a.iataCode }})</option>
             </select>
           </div>
           <div class="w-field" style="position:relative; overflow:visible;">

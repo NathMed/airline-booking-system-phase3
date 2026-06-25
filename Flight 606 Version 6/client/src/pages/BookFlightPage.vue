@@ -120,21 +120,25 @@ function seatAt(flightId, row, col) {
     return seats.find(s => s && s.seatNumber === `${row}${col}`) || null;
 }
 
+// Returns which passenger (0-based index) owns this seat on this leg, or -1
+function ownerOf(legIndex, seatId) {
+    const leg = bookingStore.legs?.[legIndex];
+    if (!leg?.selectedSeatIds) return -1;
+    return leg.selectedSeatIds.indexOf(seatId);
+}
+
 function seatBtnClass(legIndex, seat) {
-    // Occupied / null seat → grey disabled
     if (!seat || seat.isOccupied) return 'btn-secondary disabled';
 
-    // Check if store has selected this seat
-    const leg = bookingStore.legs?.[legIndex];
-    const ownerIdx = leg?.selectedSeatIds ? leg.selectedSeatIds.indexOf(seat._id) : -1;
+    const owner = ownerOf(legIndex, seat._id);
 
-    // Currently-active passenger already claimed it → solid primary
-    if (ownerIdx === activePassengerIndex.value) return 'btn-primary';
+    // Seat belongs to the next-to-assign passenger (highlighted as "active pick")
+    if (owner === activePassengerIndex.value) return 'btn-primary';
 
-    // Another passenger claimed it → solid info (teal) so it's visually distinct
-    if (ownerIdx > -1) return 'btn-info';
+    // Seat belongs to another passenger — show teal so they're visually distinct
+    if (owner > -1) return 'btn-info';
 
-    // Available: business → amber outline, economy → green outline
+    // Available seats: business → amber outline, economy → green outline
     return seat.class === 'business' ? 'btn-outline-warning' : 'btn-outline-success';
 }
 
@@ -143,32 +147,62 @@ function onSeatClick(legIndex, seat) {
     const flight = flightsMap.value[legIndex];
     if (!flight) return;
 
-    // Delegate selection logic to the store
+    const paxCount = passengerCount.value;
+    const existingOwner = ownerOf(legIndex, seat._id);
+
+    // ── Deselect: clicking an already-owned seat removes it ──────────────────
+    if (existingOwner > -1) {
+        bookingStore.selectSeatForLeg(legIndex, existingOwner, null);
+
+        const collection = [...(selectedSeats.value[flight._id] || [])];
+        const idx = collection.findIndex(s => s._id === seat._id);
+        if (idx > -1) collection.splice(idx, 1);
+        selectedSeats.value[flight._id] = collection;
+
+        // Move the active pointer back to the deselected passenger's slot
+        activePassengerIndex.value = existingOwner;
+        return;
+    }
+
+    // ── All seats already assigned for this leg — nothing to do ──────────────
+    if (activePassengerIndex.value >= paxCount) return;
+
+    // ── Assign seat to the current active passenger ───────────────────────────
+    const leg = bookingStore.legs?.[legIndex];
+
+    // If this passenger already had a seat, remove it from the local mirror first
+    const prevSeatId = leg?.selectedSeatIds?.[activePassengerIndex.value];
+    if (prevSeatId) {
+        const collection = [...(selectedSeats.value[flight._id] || [])];
+        const prevIdx = collection.findIndex(s => s._id === prevSeatId);
+        if (prevIdx > -1) collection.splice(prevIdx, 1);
+        selectedSeats.value[flight._id] = collection;
+    }
+
     bookingStore.selectSeatForLeg(legIndex, activePassengerIndex.value, seat._id);
 
-    // Keep the store leg's seats array populated (guard against hot-reloads / re-init)
+    // Keep the store leg's seats array populated so ConfirmPaymentPage can price
     if (bookingStore.legs[legIndex] && !bookingStore.legs[legIndex].seats?.length) {
         bookingStore.legs[legIndex].seats = seatsMap.value[flight._id] || [];
     }
 
-    // Keep a local mirror of full seat objects so getSeatPrice can work
+    // Push into local pricing mirror
     const collection = [...(selectedSeats.value[flight._id] || [])];
-    const existingIdx = collection.findIndex(s => s._id === seat._id);
-
-    if (existingIdx > -1) {
-        // Already selected → deselect (toggle off)
-        collection.splice(existingIdx, 1);
-    } else {
-        // Replace the current passenger's slot if they already picked one
-        const leg = bookingStore.legs?.[legIndex];
-        const prevSeatId = leg?.selectedSeatIds?.[activePassengerIndex.value];
-        if (prevSeatId && prevSeatId !== seat._id) {
-            const prevIdx = collection.findIndex(s => s._id === prevSeatId);
-            if (prevIdx > -1) collection.splice(prevIdx, 1);
-        }
-        collection.push(seat);
-    }
+    collection.push(seat);
     selectedSeats.value[flight._id] = collection;
+
+    // ── Auto-advance to the next unassigned passenger ─────────────────────────
+    const nextUnassigned = leg?.selectedSeatIds?.findIndex(
+        (id, i) => i > activePassengerIndex.value && (id === null || id === undefined)
+    ) ?? -1;
+
+    if (nextUnassigned > -1) {
+        activePassengerIndex.value = nextUnassigned;
+    } else {
+        // All passengers on this leg are seated — clamp to last pax so
+        // the indicator shows "all done" rather than going out of bounds
+        activePassengerIndex.value = paxCount - 1;
+    }
 }
 
 // ─── Passenger Validation & Autofill ──────────────────────────
@@ -372,15 +406,43 @@ function legLabel(flight, i) {
                         <div class="card-body p-4" v-if="isOpen('seats')">
                             
                             <div class="d-flex gap-2 mb-4 overflow-auto">
-                                <button v-for="(flight, i) in flightsMap" :key="i" class="btn" :class="activeLegIndex === i ? 'btn-primary' : 'btn-outline-secondary'" @click="activeLegIndex = i">
+                                <button
+                                    v-for="(flight, i) in flightsMap"
+                                    :key="i"
+                                    class="btn"
+                                    :class="activeLegIndex === i ? 'btn-primary' : 'btn-outline-secondary'"
+                                    @click="activeLegIndex = i; activePassengerIndex = bookingStore.legs?.[i]?.selectedSeatIds?.findIndex(id => !id) ?? 0; activePassengerIndex = activePassengerIndex < 0 ? passengerCount - 1 : activePassengerIndex"
+                                >
                                     Leg {{ i + 1 }}: {{ flight.flightNumber }}
+                                    <i v-if="bookingStore.legs?.[i]?.selectedSeatIds?.every(id => !!id) && bookingStore.legs?.[i]?.selectedSeatIds?.length === passengerCount" class="bi bi-check-circle-fill text-warning ms-1"></i>
                                 </button>
                             </div>
 
-                            <div class="d-flex gap-2 mb-4 overflow-auto pb-2 border-bottom">
-                                <button v-for="(p, i) in bookingStore.passengers" :key="i" class="btn btn-sm" :class="activePassengerIndex === i ? 'btn-success fw-bold' : 'btn-outline-success'" @click="activePassengerIndex = i">
-                                    Selecting for: Pax {{ i + 1 }}
-                                </button>
+                            <!-- Auto-advance status strip — no manual tabs needed -->
+                            <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom flex-wrap">
+                                <div
+                                    v-for="(p, i) in bookingStore.passengers"
+                                    :key="i"
+                                    class="d-flex align-items-center gap-2 px-3 py-2 rounded"
+                                    :class="i === activePassengerIndex
+                                        ? 'bg-success text-white fw-bold'
+                                        : ownerOf(activeLegIndex, bookingStore.legs?.[activeLegIndex]?.selectedSeatIds?.[i]) > -1 || bookingStore.legs?.[activeLegIndex]?.selectedSeatIds?.[i]
+                                            ? 'bg-light text-success border border-success'
+                                            : 'bg-light text-muted border'"
+                                    style="font-size: 0.85rem;"
+                                >
+                                    <i
+                                        class="bi"
+                                        :class="bookingStore.legs?.[activeLegIndex]?.selectedSeatIds?.[i]
+                                            ? 'bi-check-circle-fill'
+                                            : i === activePassengerIndex ? 'bi-cursor-fill' : 'bi-circle'"
+                                    ></i>
+                                    Pax {{ i + 1 }}
+                                    <span v-if="bookingStore.legs?.[activeLegIndex]?.selectedSeatIds?.[i]" class="ms-1 small opacity-75">
+                                        · {{ seatsMap[currentFlightId]?.find(s => s._id === bookingStore.legs[activeLegIndex].selectedSeatIds[i])?.seatNumber || '—' }}
+                                    </span>
+                                    <span v-else-if="i === activePassengerIndex" class="ms-1 small opacity-75">← pick a seat</span>
+                                </div>
                             </div>
 
                             <div class="text-center p-3 bg-light rounded border">
