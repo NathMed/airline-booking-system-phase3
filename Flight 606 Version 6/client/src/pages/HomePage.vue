@@ -1,11 +1,19 @@
 <script setup>
 import { useRouter } from 'vue-router'
+import { onBeforeMount } from 'vue'
+import { useGlobalStore } from '../stores/global.js'
 import HeroSlider from '../components/HeroSlider.vue'
 
+const store = useGlobalStore()
 const router = useRouter()
 function goToFlights() {
   router.push({ name: 'SearchFlights' })
 }
+
+onBeforeMount(() => {
+  if (store.isAdmin) router.push({ path: '/admin-dashboard' })
+})
+
 </script>
 
 <template>

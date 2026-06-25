@@ -79,8 +79,15 @@ function doLogout() {
         class="collapse navbar-collapse" 
         id="navbarContent"
         :class="{ 'show': isMenuOpen }"
-      >
-        <ul class="navbar-nav mx-auto gap-lg-2">
+      > 
+
+        <ul v-if="store.isAdmin" class="navbar-nav mx-auto gap-lg-2">
+          <li class="nav-item">
+            <RouterLink class="nav-link" active-class="active" :to="{ name: 'AdminDashboard' }" @click="isMenuOpen = false">Admin Dashboard</RouterLink>
+          </li>          
+        </ul>
+
+        <ul v-else class="navbar-nav mx-auto gap-lg-2">
           <li class="nav-item">
             <RouterLink class="nav-link" active-class="active" :to="{ name: 'Home' }" @click="isMenuOpen = false">Home</RouterLink>
           </li>
@@ -128,21 +135,15 @@ function doLogout() {
               <i class="bi bi-chevron-down small"></i>
             </button>
             <div class="profile-menu" :class="{ open: profileMenuOpen }">
-              <RouterLink :to="{ name: 'Profile' }" @click="closeProfileMenu(); isMenuOpen = false">
+              <RouterLink v-if="!store.isAdmin" :to="{ name: 'Profile' }" @click="closeProfileMenu(); isMenuOpen = false">
                 <i class="bi bi-person"></i> Personal Details
               </RouterLink>
-              <RouterLink :to="{ name: 'MyBookings' }" @click="closeProfileMenu(); isMenuOpen = false">
+              <RouterLink v-if="!store.isAdmin" :to="{ name: 'MyBookings' }" @click="closeProfileMenu(); isMenuOpen = false">
                 <i class="bi bi-wallet2"></i> My Bookings
               </RouterLink>
-              <RouterLink :to="{ name: 'CheckIn' }" @click="closeProfileMenu(); isMenuOpen = false">
+              <RouterLink v-if="!store.isAdmin" :to="{ name: 'CheckIn' }" @click="closeProfileMenu(); isMenuOpen = false">
                 <i class="bi bi-qr-code-scan"></i> Check-in
               </RouterLink>
-              <template v-if="store.isAdmin">
-                <div class="pm-sep"></div>
-                <RouterLink :to="{ name: 'AdminDashboard' }" @click="closeProfileMenu(); isMenuOpen = false">
-                  <i class="bi bi-speedometer2"></i> Admin Dashboard
-                </RouterLink>
-              </template>
               <div class="pm-sep"></div>
               <a href="#" class="logout-link" @click.prevent="doLogout(); isMenuOpen = false">
                 <i class="bi bi-box-arrow-right"></i> Log out
