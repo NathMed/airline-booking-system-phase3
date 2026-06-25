@@ -21,9 +21,6 @@ const routes = [
   { path: '/signup', name: 'Signup', component: SignupPage, meta: { guestOnly: true } },
   { path: '/flights', name: 'SearchFlights', component: SearchFlightsPage },
 
-  // Checkout / GuestCheckout share the same seat + passenger-details component.
-  // flightId is a comma-joined list of one (one-way) or two (round-trip) Flight _ids,
-  // built by SearchFlightsPage.selectFlight().
   { path: '/checkout/:flightId', name: 'Checkout', component: BookFlightPage, meta: { requiresAuth: true } },
   { path: '/guest-checkout/:flightId', name: 'GuestCheckout', component: BookFlightPage },
 
@@ -36,19 +33,34 @@ const routes = [
   { path: '/check-in', name: 'CheckIn', component: CheckInPage },
   { path: '/flight-status', name: 'FlightStatus', component: FlightStatusPage },
 
-  // Admin-only. requiresAuth gets logged-out users sent to Login first;
-  // requiresAdmin then bounces any non-admin (including logged-in passengers)
-  // back to Home. See the beforeEach guard below.
-  { path: '/admin-dashboard', name: 'AdminDashboard', component: AdminDashboardPage, meta: { requiresAuth: true, requiresAdmin: true } },
+  // Admin shell — sidebar lives here; child views render inside <RouterView />.
+  // requiresAuth + requiresAdmin cascade to all children automatically.
+  {
+    path: '/admin-dashboard',
+    name: 'AdminDashboard',
+    component: AdminDashboardPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+    children: [
+      // Default child — loads at /admin-dashboard
+      { path: '',              name: 'AdminFlights',       component: () => import('../components/admin/AdminFlights.vue') },
+
+      // Operations
+      { path: 'passengers',   name: 'AdminPassengers',    component: () => import('../components/admin/AdminPassengers.vue') },
+      { path: 'bookings',     name: 'AdminBookings',      component: () => import('../components/admin/AdminBookings.vue') },
+      { path: 'seats',        name: 'AdminSeats',         component: () => import('../components/admin/AdminSeats.vue') },
+      { path: 'payments',     name: 'AdminPayments',      component: () => import('../components/admin/AdminPayments.vue') },
+
+      // Infrastructure
+      { path: 'airlines',     name: 'AdminAirlines',      component: () => import('../components/admin/AdminAirlines.vue') },
+      { path: 'airports',     name: 'AdminAirports',      component: () => import('../components/admin/AdminAirports.vue') },
+      { path: 'aircraft',     name: 'AdminAircraft',      component: () => import('../components/admin/AdminAircraft.vue') },
+      { path: 'users',        name: 'AdminUsers',         component: () => import('../components/admin/AdminUsers.vue') },
+      { path: 'notifications',name: 'AdminNotifications', component: () => import('../components/admin/AdminNotifications.vue') },
+    ]
+  },
 
   { path: '/:pathMatch(.*)*', redirect: '/' }
 ]
-
-const corsOptions = {
-    origin: ["http://localhost:5173", "http://localhost:8000"],
-    credentials: true,
-    optionsSuccessStatus: 200
-};
 
 const router = createRouter({
   history: createWebHistory(),
@@ -61,8 +73,6 @@ const router = createRouter({
   }
 })
 
-// Route guards: keep logged-out users out of account-only pages, and
-// keep logged-in users from re-visiting the login/signup forms.
 router.beforeEach((to) => {
   const globalStore = useGlobalStore()
   const isLoggedIn = !!globalStore.user.token

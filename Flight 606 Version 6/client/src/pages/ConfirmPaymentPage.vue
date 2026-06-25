@@ -1,25 +1,57 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { Notyf } from 'notyf'
 import {
   createPassengerUser, createPassengerGuest, getMyPassengers, getPassengerForGuest,
   createBookingUser, createBookingGuest,
   createBookingPassenger, createBookingPassengerGuest,
-  createPaymentUser, createPaymentGuest
+  createPaymentUser, createPaymentGuest,
+  getSeatsByFlight
 } from '../api.js'
 import { useBookingStore } from '../stores/booking.js'
 
 const router = useRouter()
 const bookingStore = useBookingStore()
+const notyf = new Notyf({ duration: 4000, position: { x: 'right', y: 'top' }, ripple: true })
 
 const paymentMethod = ref('credit_card')
 const card = ref({ name: '', number: '', expiry: '', cvv: '' })
 const isProcessing = ref(false)
 const errorMsg = ref('')
 
-onMounted(() => {
+// Pre-fetched profiles to prevent unnecessary 409 Conflict errors
+const savedPassengers = ref([]) 
+
+onMounted(async () => {
   if (bookingStore.legs.length === 0) {
     router.replace({ name: 'SearchFlights' })
+    return
+  }
+
+  // CRITICAL: If leg.seats is missing (component navigated to fresh, store lost
+  // the seats array which is not persisted across navigation), re-fetch them now.
+  // This makes ConfirmPaymentPage self-healing — it never shows ₱0.
+  for (let i = 0; i < bookingStore.legs.length; i++) {
+    const leg = bookingStore.legs[i]
+    if (!leg.seats || leg.seats.length === 0) {
+      try {
+        const res = await getSeatsByFlight(leg.flightId)
+        leg.seats = res.seats || res.result || []
+      } catch (e) {
+        console.warn(`Could not re-fetch seats for leg ${i}:`, e)
+      }
+    }
+  }
+
+  // Optimize: Pre-fetch saved passengers on mount for authenticated users
+  if (bookingStore.mode !== 'guest') {
+    try {
+      const res = await getMyPassengers()
+      savedPassengers.value = res?.passengers || res?.result || []
+    } catch (e) {
+      console.warn("Could not load saved profiles for checkout optimization.")
+    }
   }
 })
 
@@ -33,24 +65,49 @@ function legLabel(leg, i) {
   const prefix = bookingStore.legs.length > 1 ? (i === 0 ? 'Outbound · ' : 'Return · ') : ''
   return `${prefix}${origin} → ${dest} · ${dateLabel} · ${f.flightNumber || ''}`
 }
-function legSubtotal(i) {
-  const leg = bookingStore.legs[i]
-  if (!leg) return 0
-  return leg.selectedSeatIds.reduce((sum, seatId) => sum + bookingStore.seatPrice(leg, seatId), 0)
+
+// ─── Pricing (mirrors Checkout.vue exactly) ───────────────────
+// The store only holds seat IDs, not seat objects or flight prices.
+// We resolve the full seat object from leg.seats and read the price
+// from leg.flight — the same fields the backend sets on every flight.
+function getSeatPrice(leg, seat) {
+  if (!leg || !seat) return 0
+  const flight = leg.flight || {}
+  return seat.class === 'business'
+    ? (flight.businessPrice ?? 0)
+    : (flight.basePrice ?? 0)
 }
+
 function seatFor(leg, pIdx) {
+  if (!leg?.selectedSeatIds || !leg?.seats) return null
   const seatId = leg.selectedSeatIds[pIdx]
   return leg.seats.find(s => s._id === seatId) || null
 }
+
+function legSubtotal(i) {
+  const leg = bookingStore.legs[i]
+  if (!leg?.selectedSeatIds || !leg?.seats) return 0
+  return leg.selectedSeatIds.reduce((sum, seatId) => {
+    const seat = leg.seats.find(s => s._id === seatId)
+    return sum + getSeatPrice(leg, seat)
+  }, 0)
+}
+
+// Grand total across all legs — replaces bookingStore.totalAmount (which doesn't know seat class prices)
+const grandTotal = computed(() =>
+  bookingStore.legs.reduce((sum, _, i) => sum + legSubtotal(i), 0)
+)
 
 function formatCardNumber(e) {
   const digits = e.target.value.replace(/\D/g, '').slice(0, 19)
   card.value.number = digits.match(/.{1,4}/g)?.join(' ') || digits
 }
+
 function formatExpiry(e) {
   const digits = e.target.value.replace(/\D/g, '').slice(0, 4)
   card.value.expiry = digits.length > 2 ? digits.slice(0, 2) + '/' + digits.slice(2) : digits
 }
+
 function formatCvv(e) {
   card.value.cvv = e.target.value.replace(/\D/g, '').slice(0, 4)
 }
@@ -70,89 +127,119 @@ function validatePayment() {
 async function confirmAndPay() {
   errorMsg.value = ''
   const payErr = validatePayment()
-  if (payErr) { errorMsg.value = payErr; return }
+  
+  if (payErr) { 
+    errorMsg.value = payErr
+    notyf.error(payErr)
+    return 
+  }
 
   isProcessing.value = true
   const results = []
   const isGuest = bookingStore.mode === 'guest'
 
   try {
-    for (let li = 0; li < bookingStore.legs.length; li++) {
-      const leg = bookingStore.legs[li]
+    // Structural optimization: Loop passengers first, then flights.
+    // This allows us to create the passenger profile ONCE, and apply that 
+    // same passenger ID across all connecting flights/legs.
+    for (let pi = 0; pi < bookingStore.passengers.length; pi++) {
+      const p = bookingStore.passengers[pi]
+      let passengerId = null
 
-      for (let pi = 0; pi < bookingStore.passengers.length; pi++) {
-        const p = bookingStore.passengers[pi]
-        const seatId = leg.selectedSeatIds[pi]
+      // 1. Create or Reuse Passenger Profile
+      const existingProfile = savedPassengers.value.find(saved => saved.passportNumber === p.passportNumber)
 
-        // 1. Create (or reuse) the passenger profile
-        let passengerId
+      if (existingProfile && !isGuest) {
+        passengerId = existingProfile._id
+      } else {
         const passengerPayload = {
           firstName: p.firstName, lastName: p.lastName, gender: p.gender,
           dateOfBirth: p.dateOfBirth, nationality: p.nationality,
           passportNumber: p.passportNumber, passportExpiry: p.passportExpiry, phone: p.phone
         }
+        
         try {
           const res = isGuest
             ? await createPassengerGuest({ ...passengerPayload, email: p.email || bookingStore.guestEmail })
             : await createPassengerUser(passengerPayload)
-          passengerId = res.result._id
+            
+          passengerId = res.result?._id || res.passengerId || res._id
         } catch (err) {
           if (err.response?.status === 409) {
-            // Passport already on file — reuse the existing passenger record.
+            // Fallback for Guests or stale arrays: Passport already on file
             const existing = isGuest
               ? await getPassengerForGuest({ passportNumber: p.passportNumber })
               : { passenger: (await getMyPassengers()).passengers.find(x => x.passportNumber === p.passportNumber) }
+              
             passengerId = existing.passenger?._id
             if (!passengerId) throw err
           } else {
             throw err
           }
         }
+      }
 
-        // 2. Create the booking (one per passenger per flight leg)
+      if (!passengerId) throw new Error(`Could not resolve passenger ID for ${p.firstName}.`)
+
+      // 2. Loop through each leg to execute the booking pipeline for this passenger
+      for (let li = 0; li < bookingStore.legs.length; li++) {
+        const leg = bookingStore.legs[li]
+        const seatId = leg.selectedSeatIds[pi]
+
+        // Create booking record
         const bookingPayload = isGuest
           ? { flightId: leg.flightId, seatId, guestEmail: bookingStore.guestEmail }
           : { flightId: leg.flightId, seatId }
+          
         const bookingRes = isGuest
           ? await createBookingGuest(bookingPayload)
           : await createBookingUser(bookingPayload)
+          
+        const bookingId = bookingRes.bookingId || bookingRes.result?._id
 
-        // 3. Link the passenger + seat to that booking
+        // Link passenger to seat
         const bkpPayload = isGuest
-          ? { bookingId: bookingRes.bookingId, passengerId, seatId, guestEmail: bookingStore.guestEmail }
-          : { bookingId: bookingRes.bookingId, passengerId, seatId }
+          ? { bookingId, passengerId, seatId, guestEmail: bookingStore.guestEmail }
+          : { bookingId, passengerId, seatId }
+          
         if (isGuest) await createBookingPassengerGuest(bkpPayload)
         else await createBookingPassenger(bkpPayload)
 
-        // 4. Pay (this also flips the booking to "confirmed" server-side)
+        // Process payment
         const paymentPayload = isGuest
-          ? { bookingId: bookingRes.bookingId, paymentMethod: paymentMethod.value, amount: bookingRes.totalAmount, guestEmail: bookingStore.guestEmail }
-          : { bookingId: bookingRes.bookingId, paymentMethod: paymentMethod.value, amount: bookingRes.totalAmount }
+          ? { bookingId, paymentMethod: paymentMethod.value, amount: bookingRes.totalAmount, guestEmail: bookingStore.guestEmail }
+          : { bookingId, paymentMethod: paymentMethod.value, amount: bookingRes.totalAmount }
+          
         if (isGuest) await createPaymentGuest(paymentPayload)
         else await createPaymentUser(paymentPayload)
 
         results.push({
-          bookingReference: bookingRes.bookingReference,
+          bookingReference: bookingRes.bookingReference || bookingId,
           passengerName: `${p.firstName} ${p.lastName}`,
           leg: legLabel(leg, li),
           seat: leg.seats.find(s => s._id === seatId)?.seatNumber || '',
-          amount: bookingRes.totalAmount
+          amount: bookingRes.totalAmount || 0
         })
       }
     }
 
+    // Success payload
     bookingStore.setLastOrder({
       bookings: results,
       totalPaid: results.reduce((sum, r) => sum + r.amount, 0),
       paymentMethod: paymentMethod.value,
       guestEmail: bookingStore.guestEmail
     })
+    
     bookingStore.clearFunnel()
+    notyf.success('Payment confirmed! Your itinerary is ready.')
     router.push({ name: 'PaymentSuccess' })
+
   } catch (err) {
     console.error(err)
-    errorMsg.value = err.response?.data?.message ||
-      'Something went wrong while processing your payment. A seat may have just been taken — please go back and try again.'
+    const msg = err.response?.data?.message || 'Something went wrong while processing your payment. A seat may have just been taken.'
+    errorMsg.value = msg
+    notyf.error(msg)
   } finally {
     isProcessing.value = false
   }
@@ -182,6 +269,7 @@ async function confirmAndPay() {
               </div>
               <div class="confirm-detail"><i class="bi bi-ui-checks-grid"></i><span>{{ seatFor(leg, pi)?.seatNumber || '—' }}</span></div>
               <div class="confirm-detail"><i class="bi bi-tag"></i><span>{{ seatFor(leg, pi)?.class === 'business' ? 'Business' : 'Economy' }}</span></div>
+              <div class="confirm-detail"><i class="bi bi-currency-dollar"></i><span>₱{{ getSeatPrice(leg, seatFor(leg, pi)).toLocaleString() }}</span></div>
             </div>
           </div>
 
@@ -236,7 +324,7 @@ async function confirmAndPay() {
               <span><span class="subtotal-qty">{{ bookingStore.passengers.length }}×</span> {{ legLabel(leg, li) }}</span>
               <span>₱{{ legSubtotal(li).toLocaleString() }}</span>
             </div>
-            <div class="confirm-total"><span>Total :</span><span class="confirm-total-amt">₱{{ bookingStore.totalAmount.toLocaleString() }}</span></div>
+            <div class="confirm-total"><span>Total :</span><span class="confirm-total-amt">₱{{ grandTotal.toLocaleString() }}</span></div>
           </div>
 
           <div v-if="errorMsg" class="alert alert-danger my-3">{{ errorMsg }}</div>
