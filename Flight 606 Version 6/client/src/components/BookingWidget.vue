@@ -203,8 +203,6 @@ function removeMcRow(id) {
             <option>1 Adult</option>
             <option>2 Adults</option>
             <option>3 Adults</option>
-            <option>2 Adults, 1 Child</option>
-            <option>2 Adults, 2 Children</option>
           </select>
         </div>
       </div>
@@ -242,8 +240,6 @@ function removeMcRow(id) {
             <option>1 Adult</option>
             <option>2 Adults</option>
             <option>3 Adults</option>
-            <option>2 Adults, 1 Child</option>
-            <option>2 Adults, 2 Children</option>
           </select>
         </div>
       </div>
@@ -293,8 +289,6 @@ function removeMcRow(id) {
               <option>1 Adult</option>
               <option>2 Adults</option>
               <option>3 Adults</option>
-              <option>2 Adults, 1 Child</option>
-              <option>2 Adults, 2 Children</option>
             </select>
           </div>
         </div>

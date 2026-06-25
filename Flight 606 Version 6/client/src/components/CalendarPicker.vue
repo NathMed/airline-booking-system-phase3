@@ -135,7 +135,6 @@ function toggle() {
               today:     cell.isToday && !cell.isSelected,
               disabled:  cell.disabled
             }"
-            :disabled="cell.disabled"
             @click.stop="pickDay(cell)"
             type="button"
           >{{ cell.d }}</button>
