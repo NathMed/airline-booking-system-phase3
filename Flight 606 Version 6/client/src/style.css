@@ -74,6 +74,8 @@
   --bg-60-deep:    #FFFFFF;
   --bg-60-mid:     #F7F7F7; /* Subtle lift for depth */
   --bg-60-surface: #EEEEEE; /* Elevation card background */
+  --muted: #6B7280;   /* ← ADD THIS LINE */
+
 
   /* 30% – Secondary / Structural / Accents (WCAG-Contrast Gold) */
   --accent-30:     #A37F26; /* Deepened gold for WCAG text contrast on white */
@@ -112,6 +114,18 @@
   --nav-border:      rgba(163, 127, 38, 0.18);
   --cal-bg:          #F7F7F7;
   --cal-day-hover:   rgba(163, 127, 38, 0.10);
+}
+
+[data-theme="light"] .nav-link {
+    color: #374151 !important;
+}
+
+[data-theme="light"] .nav-link:hover {
+    color: #111827 !important;
+}
+
+[data-theme="light"] .nav-link.router-link-active {
+    color: var(--gold) !important;
 }
 
 /* ══════════════════════════════════════════════════

@@ -79,6 +79,8 @@ function logout() {
 </template>
 
 <style scoped>
+@import './admin-shared.css';
+
 .admin-sidebar {
     flex: 0 0 200px;
     min-width: 160px;
@@ -146,7 +148,20 @@ function logout() {
     background: rgba(255, 77, 77, 0.08);
 }
 
-[data-theme="light"] .profile-nav .nav-link.logout-nav:hover {
+/* ── Light theme overrides ──────────────────────────────────────────────────
+   Your app sets data-theme="light" on a wrapper <div> (not on <html>), so we
+   use :deep() to escape Vue's scoped-CSS boundary and target that ancestor div.
+   Without :deep(), Vue would mangle the selector and it would never match.
+   --------------------------------------------------------------------------- */
+:deep([data-theme="light"]) .profile-nav .nav-link {
+    color: #374151; /* slate-700 — legible on white sidebar background */
+}
+
+:deep([data-theme="light"]) .profile-nav .nav-link:hover {
+    color: #111827; /* slate-900 — strong contrast on hover */
+}
+
+:deep([data-theme="light"]) .profile-nav .nav-link.logout-nav:hover {
     background: rgba(217, 56, 58, 0.08);
 }
 

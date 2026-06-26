@@ -744,3 +744,31 @@
 
 /* ── Tiny layout helper ── */
 .ml-auto { margin-left: auto; }
+
+/* ══════════════════════════════════════════════════
+   SIDEBAR SEMANTIC TOKENS
+   Two tokens that replace the raw --muted / --text
+   references inside AdminSidebar.vue.  By keeping
+   the per-theme overrides here (alongside all other
+   token definitions) the sidebar never needs its own
+   [data-theme] blocks.
+
+   Dark theme values   → match the original --muted /
+                         --text so the dark-mode look
+                         is completely unchanged.
+   Light theme values  → flip to legible dark tones so
+                         text is visible on a white
+                         sidebar background.
+   ══════════════════════════════════════════════════ */
+
+/* Dark theme (default) */
+:root {
+    --sidebar-link:       var(--muted);   /* dim but readable on dark bg  */
+    --sidebar-link-hover: var(--text);    /* full brightness on hover      */
+}
+
+/* Light theme */
+[data-theme="light"] {
+    --sidebar-link:       #374151;        /* slate-700 — clear on white bg */
+    --sidebar-link-hover: #111827;        /* slate-900 — strong on hover   */
+}
